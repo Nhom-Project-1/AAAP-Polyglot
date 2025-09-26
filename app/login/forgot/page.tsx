@@ -41,10 +41,7 @@ export default function ForgotPasswordPage() {
               />
               {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
             </div>
-
-            <Button variant="secondary" type="submit" className="w-30 px-8 py-3 mx-auto block">
-              Gửi
-            </Button>
+            <Button variant="secondary" type="submit" className="w-30 px-8 py-3 mx-auto block">Gửi</Button>
           </form>
         </div>
       </div>

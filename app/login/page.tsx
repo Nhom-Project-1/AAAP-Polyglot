@@ -49,12 +49,10 @@ const [errors, setErrors] = useState<LoginErrors>({ identifier: "", password: ""
   return (
     <div className="min-h-screen flex items-center justify-center bg-white-50">
       <div className="w-full max-w-md bg-gray p-8 rounded-2xl shadow-md">
-        <h1 className="text-2xl text-black-500 font-bold text-center mb-6">
-          Đăng nhập vào AAAP Polyglot
-        </h1>
+        <h1 className="text-2xl text-black-500 font-bold text-center mb-6">Đăng nhập vào AAAP Polyglot</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/*Username or email*/}
+          {/*Username hoặc email*/}
           <div>
             <label className="block text-sm font-medium mb-1 text-black-500">
               Tên đăng nhập hoặc email
@@ -87,12 +85,13 @@ const [errors, setErrors] = useState<LoginErrors>({ identifier: "", password: ""
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-3 flex items-center text-pink-500"
+                className="absolute right-3 top-1/2 -translate-y-1/2"
               >
-                {showPassword
-                  ? <img src="/openeye.svg" alt="Hiện mật khẩu" className="w-5 h-5" />
-                  : <img src="/closeeye.svg" alt="Ẩn mật khẩu" className="w-5 h-5" />
-                }
+                <img
+                  src={showPassword ? "/openeye.svg" : "/closeeye.svg"}
+                  alt={showPassword ? "Hiện mật khẩu" : "Ẩn mật khẩu"}
+                  className="w-5 h-5"
+                />
               </button>
             </div>
             {errors.password && (
@@ -102,26 +101,20 @@ const [errors, setErrors] = useState<LoginErrors>({ identifier: "", password: ""
 
           {}
           <div className="flex justify-between">
-            <Button variant="secondary" className="px-8 py-3 mx-auto block w-40" type="submit">
-              Đăng nhập
-            </Button>
+            <Button variant="secondary" className="px-8 py-3 mx-auto block w-40 cursor-pointer" type="submit">Đăng nhập</Button>
           </div>
         </form>
 
         <div className="text-center text-sm text-black-600 mt-4">
           <span>Quên mật khẩu?{" "}
-            <button
-              onClick={() => router.push("/login/forgot")} 
-              className="text-pink-500 hover:underline cursor-pointer">
+            <button onClick={() => router.push("/login/forgot")} className="text-pink-500 hover:underline cursor-pointer">
               Đổi thôi!
             </button>
           </span>
         </div>
         <div className="mt-3 text-sm text-center">
           <span>Là người mới?{" "}
-            <button
-              onClick={() => router.push("/signup")} 
-              className="text-pink-500 hover:underline cursor-pointer">
+            <button onClick={() => router.push("/signup")} className="text-pink-500 hover:underline cursor-pointer">
               Tạo tài khoản!
             </button>
           </span>

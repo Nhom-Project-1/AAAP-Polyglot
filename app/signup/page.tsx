@@ -139,14 +139,15 @@ const [errors, setErrors] = useState<SignupErrors>({
                             className={`w-full border border-pink-300 rounded-lg px-3 py-2 ${showVerification ? "bg-gray-100 cursor-not-allowed" : ""}`}
                         />
                         <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2"
                         >
-                        {showPassword
-                            ? <img src="/openeye.svg" alt="Hiện mật khẩu" className="h-5 w-5" />
-                            : <img src="/closeeye.svg" alt="Ẩn mật khẩu" className="h-5 w-5" />
-                        }
+                          <img
+                            src={showPassword ? "/openeye.svg" : "/closeeye.svg"}
+                            alt={showPassword ? "Hiện mật khẩu" : "Ẩn mật khẩu"}
+                            className="h-5 w-5"
+                          />
                         </button>
                     </div>
                     {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
