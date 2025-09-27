@@ -64,11 +64,12 @@ export const Header = ({ onLogout }: HeaderProps) => {
 
       {/* Modal xác nhận logout */}
       {showLogoutModal && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-100 text-center shadow-lg">
-            <h3 className="text-lg font-bold text-pink-300 mb-4">
-              Xác nhận đăng xuất
-            </h3>
+        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-70">
+          <div className="bg-white rounded-lg p-6 w-100 text-center shadow-lg relative">
+            <button onClick={() => setShowLogoutModal(false)} className="absolute top-3 right-3 text-pink-400 hover:text-pink-600 text-xl cursor-pointer" >
+              ✕
+            </button>
+            <h3 className="text-lg font-bold text-pink-300 mb-4">Xác nhận đăng xuất</h3>
             <p className="mb-6">Bạn có chắc chắn muốn đăng xuất không?</p>
             <div className="flex justify-center gap-4">
               <Button variant="ghost" onClick={() => setShowLogoutModal(false)} className="cursor-pointer">Hủy</Button>
