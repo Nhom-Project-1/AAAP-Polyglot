@@ -111,7 +111,7 @@ export default function Home() {
           </Button>
         </div>
         <div className="flex justify-center">
-          <img src="/learning.jpg" alt="AAAP Polyglot" className="max-w-sm rounded-xl shadow-md"/>
+          <img src="/learning.png" alt="AAAP Polyglot" className="max-w-sm rounded-xl"/>
         </div>
       </div>
       </ScrollReveal>
