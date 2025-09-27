@@ -9,14 +9,17 @@ export default function ForgotPasswordPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-
+    const emailRegex =  /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/
     if (!email.trim()) {
       setError("Vui lòng nhập email")
+      return
+    } else if (!emailRegex.test(email)) {
+      setError("Vui lòng nhập email đúng định dạng")
       return
     }
 
     setError("") 
-    toast.success("Mật khẩu mới đã được gửi vào mail của bạn")
+    toast.success("Link đặt lại mật khẩu đã được gửi vào email của bạn!", { duration: 5000})
   }
 
   return (
@@ -31,17 +34,18 @@ export default function ForgotPasswordPage() {
                 type="email"
                 value={email}
                 onChange={(e) => {
-                  setEmail(e.target.value)
-                  if (error && e.target.value.trim() !== "") {
-                    setError("")
-                  }
+                  const value = e.target.value
+                  setEmail(value)
+                  const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/
+                  if (!emailRegex.test(value)) setError("Vui lòng nhập email đúng định dạng")
+                  else setError("")
                 }}
                 placeholder="Nhập email của bạn"
                 className="w-full border border-pink-300 rounded-lg px-3 py-2"
               />
               {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
             </div>
-            <Button variant="secondary" type="submit" className="w-30 px-8 py-3 mx-auto block">Gửi</Button>
+            <Button variant="secondary" type="submit" className="w-30 px-8 py-3 mx-auto block cursor-pointer">Gửi</Button>
           </form>
         </div>
       </div>

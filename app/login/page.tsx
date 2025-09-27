@@ -2,13 +2,14 @@
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { useRouter } from "next/navigation" 
+import LoadingTulip from "@/components/loading"
 
 export default function LoginPage() {
   const router = useRouter()
-  //Biến lưu ussername hoặc email
   const [identifier, setIdentifier] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   // Biến lưu thông báo lỗi
   type LoginErrors = {
@@ -38,14 +39,14 @@ const [errors, setErrors] = useState<LoginErrors>({ identifier: "", password: ""
     //chỗ này test bựa xem các thông báo như nào
     if (!valid) return
     if (identifier === "phanh" && password === "123") {
-      setTimeout(() => {
-        router.push("/course") 
-      }, 1500)
+      setIsLoading(true)
+      setTimeout(() => router.push("/course"), 1000)
     } else {
       setErrors(prev => ({ ...prev, password: "Tên đăng nhập hoặc mật khẩu sai" }))
     }
+    
   }
-
+  if (isLoading) return <LoadingTulip/>
   return (
     <div className="min-h-screen flex items-center justify-center bg-white-50">
       <div className="w-full max-w-md bg-gray p-8 rounded-2xl shadow-md">
