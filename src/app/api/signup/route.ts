@@ -12,7 +12,6 @@ export async function POST(req: NextRequest) {
       username: string;
     };
 
-    // Validation
     if (!email || !password || !fullName || !username) {
       return NextResponse.json(
         { error: "Vui lòng nhập đầy đủ thông tin." },
@@ -55,7 +54,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check existing user in Clerk
+    if(!email.includes("@gmail.com")){
+      return NextResponse.json(
+        { error: "email phải có đuôi @gmail.com" },
+        { status: 400 }
+      );
+    }
+
     const client = await clerkClient();
     const existingUsers = await client.users.getUserList({
       emailAddress: [email],
@@ -68,7 +73,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create user in Clerk
     const user = await client.users.createUser({
       emailAddress: [email],
       password,
