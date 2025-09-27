@@ -54,12 +54,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // if(!email.includes("@gmail.com")){
-    //   return NextResponse.json(
-    //     { error: "email phải có đuôi @gmail.com" },
-    //     { status: 400 }
-    //   );
-    // }
+    if(!email.includes("@gmail.com")){
+      return NextResponse.json(
+        { error: "email phải có đuôi @gmail.com" },
+        { status: 400 }
+      );
+    }
 
     const client = await clerkClient();
     const existingUsers = await client.users.getUserList({
