@@ -101,10 +101,11 @@ export async function POST(req: NextRequest) {
 
   } catch (err: any) {
     console.error("Lỗi signup:", err);
-    return NextResponse.json(
-      { error: "Có lỗi xảy ra khi đăng ký." },
-      { status: 500 }
-    );
+    // Nếu Clerk trả về lỗi 422, lấy thông tin chi tiết
+    if (err.errors) {
+      return NextResponse.json({ error: err.errors }, { status: 422 });
+    }
+    return NextResponse.json({ error: "Có lỗi xảy ra khi đăng ký." }, { status: 500 });
   }
 }
 
