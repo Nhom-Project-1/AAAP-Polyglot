@@ -1,6 +1,6 @@
 import React from "react";
 import {Header} from "./header";
-import { Footer } from "./footer";
+import {Footer} from "@/components/footer";
 type Props={
     children: React.ReactNode;
 };
@@ -11,7 +11,7 @@ const MarketingLayout=({children}:Props)=>{
             <main className="flex-1 px-14 py-8"> 
                 {children}
             </main>
-            <Footer/>
+             <Footer/>
         </div>
     );
 };

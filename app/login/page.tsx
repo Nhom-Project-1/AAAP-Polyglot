@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { useRouter } from "next/navigation" 
-import LoadingTulip from "@/components/loading"
+import Loading from "@/components/loading"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -46,12 +46,11 @@ const [errors, setErrors] = useState<LoginErrors>({ identifier: "", password: ""
     }
     
   }
-  if (isLoading) return <LoadingTulip/>
+  if (isLoading) return <Loading/>
   return (
     <div className="min-h-screen flex items-center justify-center bg-white-50">
       <div className="w-full max-w-md bg-gray p-8 rounded-2xl shadow-md">
         <h1 className="text-2xl text-black-500 font-bold text-center mb-6">Đăng nhập vào AAAP Polyglot</h1>
-
         <form onSubmit={handleSubmit} className="space-y-4">
           {/*Username hoặc email*/}
           <div>
