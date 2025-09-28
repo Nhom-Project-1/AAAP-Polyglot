@@ -113,7 +113,7 @@ export default function RegisterPage() {
                 setErrors(prev => ({ ...prev, fullName: val.trim() ? "" : "Họ và tên không được bỏ trống" }))
               }}
               disabled={showVerification}
-              className={`w-full border border-pink-300 rounded-lg px-3 py-2 ${showVerification ? "bg-gray-100 cursor-not-allowed" : ""}`}
+              className={`w-full border border-pink-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus: ring-pink-300 focus:border-pink-300 ${showVerification ? "bg-gray-100 cursor-not-allowed" : ""}`}
             />
             {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
           </div>
@@ -130,7 +130,7 @@ export default function RegisterPage() {
                 setErrors(prev => ({ ...prev, username: val.trim() ? "" : "Tên đăng nhập không được bỏ trống" }))
               }}
               disabled={showVerification}
-              className={`w-full border border-pink-300 rounded-lg px-3 py-2 ${showVerification ? "bg-gray-100 cursor-not-allowed" : ""}`}
+              className={`w-full border border-pink-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus: ring-pink-300 focus:border-pink-300 ${showVerification ? "bg-gray-100 cursor-not-allowed" : ""}`}
             />
             {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username}</p>}
           </div>
@@ -149,7 +149,7 @@ export default function RegisterPage() {
                 else setErrors(prev => ({ ...prev, email: "" }))
               }}
               disabled={showVerification}
-              className={`w-full border border-pink-300 rounded-lg px-3 py-2 ${showVerification ? "bg-gray-100 cursor-not-allowed" : ""}`}
+              className={`w-full border border-pink-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus: ring-pink-300 focus:border-pink-300 ${showVerification ? "bg-gray-100 cursor-not-allowed" : ""}`}
             />
             {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
           </div>
@@ -167,7 +167,7 @@ export default function RegisterPage() {
                   setErrors(prev => ({ ...prev, password: val.trim() ? "" : "Mật khẩu không được bỏ trống" }))
                 }}
                 disabled={showVerification}
-                className={`w-full border border-pink-300 rounded-lg px-3 py-2 ${showVerification ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                className={`w-full border border-pink-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus: ring-pink-300 focus:border-pink-300 ${showVerification ? "bg-gray-100 cursor-not-allowed" : ""}`}
               />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2">
                 <img src={showPassword ? "/openeye.svg" : "/closeeye.svg"} alt="" className="h-5 w-5"/>
@@ -191,7 +191,7 @@ export default function RegisterPage() {
                   else setErrors(prev => ({ ...prev, confirmPassword: "" }))
                 }}
                 disabled={showVerification}
-                className={`w-full border border-pink-300 rounded-lg px-3 py-2 ${showVerification ? "bg-gray-100 cursor-not-allowed" : ""}`}
+                className={`w-full border border-pink-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus: ring-pink-300 focus:border-pink-300 ${showVerification ? "bg-gray-100 cursor-not-allowed" : ""}`}
               />
               <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2">
                 <img src={showConfirmPassword ? "/openeye.svg" : "/closeeye.svg"} alt="" className="h-5 w-5"/>
@@ -208,7 +208,7 @@ export default function RegisterPage() {
                 type="text"
                 value={verificationCode}
                 onChange={(e) => setVerificationCode(e.target.value)}
-                className="w-32 border border-pink-300 rounded-lg px-3 py-1 text-sm"
+                className="w-32 border border-pink-300 rounded-lg px-3 py-1 text-sm focus:outline-none focus:ring-2 focus: ring-pink-300 focus:border-pink-300"
               />
             </div>
           )}

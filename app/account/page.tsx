@@ -76,7 +76,7 @@ export default function AccountPage() {
                   setFullName(val)
                   setErrors(prev => ({ ...prev, fullName: val.trim() ? "" : "Họ và tên không được bỏ trống" }))
                 }}
-                className="w-full px-3 py-2 rounded-lg border border-pink-300 bg-white focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400"
+                className="w-full px-3 py-2 rounded-lg border border-pink-300 bg-white focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300"
               />
               {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName}</p>}
             </div>
@@ -92,7 +92,7 @@ export default function AccountPage() {
                   setUsername(val)
                   setErrors(prev => ({ ...prev, username: val.trim() ? "" : "Tên đăng nhập không được bỏ trống" }))
                 }}
-                className="w-full px-3 py-2 rounded-lg border border-pink-300 bg-white focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400"
+                className="w-full px-3 py-2 rounded-lg border border-pink-300 bg-white focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300"
               />
               {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username}</p>}
             </div>
@@ -108,7 +108,7 @@ export default function AccountPage() {
                     setPassword(val)
                     setErrors(prev => ({ ...prev, password: val.trim() ? "" : "Mật khẩu không được bỏ trống" }))
                   }}
-                  className="w-full px-3 py-2 rounded-lg border border-pink-300 bg-white focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400"
+                  className="w-full px-3 py-2 rounded-lg border border-pink-300 bg-white focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300"
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2">
                   <img src={showPassword ? "/openeye.svg" : "/closeeye.svg"} alt="" className="h-5 w-5" />
@@ -129,7 +129,7 @@ export default function AccountPage() {
                     if (!val.trim()) setErrors(prev => ({ ...prev, newPassword: "Vui lòng nhập mật khẩu mới!" }))
                     else setErrors(prev => ({ ...prev, newPassword: "" }))
                   }}
-                  className="w-full px-3 py-2 rounded-lg border border-pink-300 bg-white focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-pink-400"
+                  className="w-full px-3 py-2 rounded-lg border border-pink-300 bg-white focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300"
                 />
                 <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2">
                   <img src={showNewPassword ? "/openeye.svg" : "/closeeye.svg"} alt="" className="h-5 w-5" />

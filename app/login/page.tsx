@@ -63,7 +63,7 @@ const [errors, setErrors] = useState<LoginErrors>({ identifier: "", password: ""
               onChange={(e) => {setIdentifier(e.target.value) 
                             if (errors.identifier && e.target.value.trim() !== "") {setErrors(prev => ({ ...prev, identifier: "" }))}
                         }}
-              className="w-full border border-pink-300 rounded-lg px-3 py-2"
+              className="w-full border border-pink-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus: ring-pink-300 focus:border-pink-300"
             />
             {errors.identifier && (
               <p className="text-red-500 text-xs mt-1">{errors.identifier}</p>
@@ -80,7 +80,7 @@ const [errors, setErrors] = useState<LoginErrors>({ identifier: "", password: ""
                 onChange={(e) => {setPassword(e.target.value) 
                             if (errors.password && e.target.value.trim() !== "") {setErrors(prev => ({ ...prev, password: "" }))}
                         }}  
-                className="w-full border border-pink-300 rounded-lg px-3 py-2 pr-10"
+                className="w-full border border-pink-300 rounded-lg px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus: ring-pink-300 focus:border-pink-300"
               />
               <button
                 type="button"

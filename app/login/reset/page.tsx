@@ -46,7 +46,7 @@ export default function ResetPasswordPage() {
                     setError("")
                   }
                 }}
-                placeholder="Nhập mật khẩu mới" className="w-full border border-pink-300 rounded-lg px-3 py-2"/>
+                placeholder="Nhập mật khẩu mới" className="w-full border border-pink-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus: ring-pink-300 focus:border-pink-300"/>
             </div>
 
             <div>
@@ -57,7 +57,7 @@ export default function ResetPasswordPage() {
                     setError("")
                   }
                 }}
-                placeholder="Nhập lại mật khẩu mới" className="w-full border border-pink-300 rounded-lg px-3 py-2"/>
+                placeholder="Nhập lại mật khẩu mới" className="w-full border border-pink-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus: ring-pink-300 focus:border-pink-300"/>
               {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
             </div>
 
