@@ -1,5 +1,4 @@
 "use client"
-
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { Lightbulb, Target, MessageCircle, ChevronRight, ChevronLeft } from "lucide-react"
@@ -20,9 +19,7 @@ function AutoplayPlugin(interval = 2000) {
     function nextTimeout() {
       clearTimeout(timeout)
       if (mouseOver) return
-      timeout = setTimeout(() => {
-        slider.next()
-      }, interval)
+      timeout = setTimeout(() => { slider.next() }, interval)
     }
 
     slider.on("created", () => {
@@ -155,7 +152,9 @@ export default function Home() {
       <h1 className="text-2xl font-bold text-center my-10">Bắt đầu ngay với ngoại ngữ bạn yêu thích</h1>
       <div className="flex justify-center gap-16 flex-wrap">
         {languages.map((lang) => (
-          <Button key={lang.id} variant="secondaryOutline" className="flex items-center gap-2 cursor-pointer"onClick={() => router.push(`/login?lang=${lang.id}`)}>
+          <Button key={lang.id} variant="secondaryOutline" className="flex items-center gap-2 cursor-pointer"onClick={() => {
+            localStorage.setItem("selectedLang", JSON.stringify(lang))
+            router.push(`/login?lang=${lang.id}`)}}>
             <ReactCountryFlag countryCode={lang.code} svg style={{ width: "1.5em", height: "1.5em", borderRadius: "2px" }} />
             {lang.label}
             <ChevronRight className="w-4 h-4" />

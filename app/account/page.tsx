@@ -62,7 +62,7 @@ export default function AccountPage() {
   return (
       <Layout>
       <div className="flex justify-center items-center min-h-screen px-4">
-        <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-md">
+        <div className="w-full max-w-md bg-white p-8 ">
           <h1 className="text-2xl font-bold text-center mb-2">Thông tin người dùng</h1>
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Họ và tên */}

@@ -1,7 +1,82 @@
-export default function course(){
-    return(
-        <div> 
-            <h1> Trang chọn ngôn ngữ</h1> 
-        </div> 
-    )
+"use client"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Layout from "@/components/layout"
+import ReactCountryFlag from "react-country-flag"
+import { Button } from "@/components/ui/button"
+
+const languages = [
+  { id: "fr", label: "Tiếng Pháp", code: "FR" },
+  { id: "en", label: "Tiếng Anh", code: "GB" },
+  { id: "zh", label: "Tiếng Trung", code: "CN" },
+  { id: "ar", label: "Tiếng Ả Rập", code: "SA" },
+]
+
+export default function ChooseLanguagePage() {
+  const router = useRouter()
+  const [selected, setSelected] = useState<string | null>(null)
+
+  return (
+    <Layout>
+      <div className="max-w-4xl mx-auto p-6">
+        <h1 className="text-2xl font-semibold mb-6 text-center">
+          Chọn một ngôn ngữ bạn muốn học
+        </h1>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 justify-items-center">
+          {languages.map((lang) => {
+            const isActive = selected === lang.id
+            return (
+              <button
+                key={lang.id}
+                onClick={() => {
+                  setSelected(lang.id)
+                  localStorage.setItem("selectedLang", JSON.stringify(lang))}}
+                className={`relative w-40 h-40 flex flex-col items-center justify-center rounded-2xl shadow transition hover:-translate-y-1 focus:outline-none bg-white ${
+                  isActive ? "ring-2 ring-pink-400" : ""
+                }`}
+              >
+                <span
+                  className={`absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-full ${
+                    isActive
+                      ? "bg-pink-500 text-white"
+                      : "bg-gray-200 text-gray-400"
+                  }`}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    className="w-4 h-4"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M20.03 7.47a1 1 0 0 1 .05 1.41l-8.5 9a1 1 0 0 1-1.42.02l-4.5-4.3a1 1 0 1 1 1.4-1.43l3.79 3.62 7.79-8.25a1 1 0 0 1 1.39-.07z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </span>
+                <ReactCountryFlag countryCode={lang.code} svg style={{ width: "3em", height: "3em", borderRadius: "4px" }} />
+                <p className="mt-3 text-sm font-medium">{lang.label}</p>
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="mt-8 flex justify-center">
+          <Button variant="secondary"
+             onClick={() => {
+              if (selected) {
+                const lang = languages.find(l => l.id === selected)
+                if (lang) localStorage.setItem("selectedLang", JSON.stringify(lang)) 
+                router.push("/course")
+              }
+            }}
+            className="px-6 py-2 rounded-lg bg-pink-500 text-white hover:bg-pink-600 cursor-pointer"
+            disabled={!selected}>
+            Tiếp tục
+          </Button>
+        </div>
+      </div>
+    </Layout>
+  )
 }

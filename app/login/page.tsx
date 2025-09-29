@@ -11,11 +11,22 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
-  // Biến lưu thông báo lỗi
+  type User = {
+    id: string
+    username: string
+    password: string
+    email?: string
+    role?: "student" | "admin"
+  }
+  //Dữ liệu test
+  const mockUsers: User[] = [
+    { id: "1", username: "phanh", password: "123", email: "phanh@example.com", role: "student" },
+    { id: "2", username: "assmin", password: "000", email: "admin@example.com", role: "admin" },
+  ]
   type LoginErrors = {
-  identifier: string
-  password: string
-}
+    identifier: string
+    password: string
+  }
 const [errors, setErrors] = useState<LoginErrors>({ identifier: "", password: "" })
 
   //chỗ này nhét api của clerk để xác thực
@@ -34,11 +45,15 @@ const [errors, setErrors] = useState<LoginErrors>({ identifier: "", password: ""
       valid = false
     }
     setErrors(newErrors)
-    if (!valid) return
 
-    //chỗ này test bựa xem các thông báo như nào
     if (!valid) return
-    if (identifier === "phanh" && password === "123") {
+    const user = mockUsers.find(
+      (u) =>
+        (u.username === identifier || u.email === identifier) &&
+        u.password === password
+    )
+    if (user) {
+      localStorage.setItem("currentUser", JSON.stringify(user))
       setIsLoading(true)
       setTimeout(() => router.push("/course"), 1000)
     } else {
