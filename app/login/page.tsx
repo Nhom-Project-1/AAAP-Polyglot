@@ -21,7 +21,7 @@ export default function LoginPage() {
   //Dữ liệu test
   const mockUsers: User[] = [
     { id: "1", username: "phanh", password: "123", email: "phanh@example.com", role: "student" },
-    { id: "2", username: "assmin", password: "000", email: "admin@example.com", role: "admin" },
+    { id: "2", username: "admin", password: "000", email: "admin@example.com", role: "admin" },
   ]
   type LoginErrors = {
     identifier: string

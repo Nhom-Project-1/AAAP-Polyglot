@@ -20,7 +20,16 @@ export const Header = ({ onLogout }: HeaderProps) => {
   const router = useRouter()
   const pathname = usePathname()
   const [showLogoutModal, setShowLogoutModal] = useState(false)
-
+  const handleMenuClick = (href: string) => {
+    if (href === "/course" || href === "/ranking" || href === "/goal") {
+      const saved = localStorage.getItem("selectedLang")
+      if (!saved) {
+        router.push("/course/choose")   
+        return``
+      }
+    }
+    router.push(href)
+  }
   return (
     <header className="w-full border-b-2 border-slate-200 px-6">
       <div className="flex items-center justify-between py-4">
@@ -31,7 +40,7 @@ export const Header = ({ onLogout }: HeaderProps) => {
             {menuItems.map((item) => {
               const isActive = pathname === item.href
               return (
-                <span key={item.href} onClick={() => router.push(item.href)} className={`text-2xl cursor-pointer transition-colors ${
+                <span key={item.href} onClick={() => handleMenuClick(item.href)} className={`text-2xl cursor-pointer transition-colors ${
                     isActive
                       ? "font-medium text-pink-300 border-b-2 border-pink-300 pb-1  hover:text-pink-500"
                       : "font-medium text-pink-300 hover:text-pink-500"}`}>

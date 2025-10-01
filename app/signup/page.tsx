@@ -82,10 +82,8 @@ export default function RegisterPage() {
     if (verificationCode === "111") {
       setIsLoading(true)
       toast.success("Đăng ký thành công! Đang chuyển sang trang học tập...")
-      setTimeout(() => router.push("/course"), 2000)
-    } else {
-      setVerificationError("Mã xác thực không đúng")
-    }
+      setTimeout(() => router.push("/course/choose"), 2000)
+    } else setVerificationError("Mã xác thực không đúng")
   }
 
   if (isLoading) return <LoadingTulip />

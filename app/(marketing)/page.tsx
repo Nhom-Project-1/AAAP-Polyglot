@@ -90,7 +90,6 @@ export default function Home() {
     { id: "zh", label: "Tiếng Trung", code: "CN" },
     { id: "ar", label: "Tiếng Ả Rập", code: "SA" },
   ]
-
   return (
     <div className="px-8 py-12">
       <ScrollReveal className="mb-24">
