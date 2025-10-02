@@ -48,6 +48,9 @@ export async function PATCH(req: NextRequest) {
     if (!/[!@#$%^&*(),.?\":{}|<>]/.test(newPassword)) {
       return NextResponse.json({ error: "Mật khẩu cần ít nhất 1 ký tự đặc biệt." }, { status: 400 });
     }
+    if (newPassword === currentPassword) {
+    return NextResponse.json({ error: "Mật khẩu mới phải khác mật khẩu hiện tại." }, { status: 400 });
+    }
   }
 
   try {
