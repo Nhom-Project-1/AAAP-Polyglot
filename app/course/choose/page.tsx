@@ -57,9 +57,4 @@ export default function ChooseLanguagePage() {
       <Toaster position="top-center" reverseOrder={false} />
     </Layout>
   )
-}
-/*Đối với người chưa chọn ngôn ngữ bao giờ: Luôn hiện trang chọn ngôn ngữ khi mới vào web, nó có thể bấm các
-chức năng khác nhưng bấm vào học tập thì vẫn phải hiện chọn đến khi nó chọn xong thì mới chuyển đến trang học tập. 
-Còn nếu người dùng đã chọn rồi thì lần sau vào web nó sẽ không hiện 
-trang chọn ngôn ngữ nữa mà vào thẳng trang học tập luôn.
-*/ 
+} 

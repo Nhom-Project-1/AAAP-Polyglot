@@ -16,12 +16,11 @@ export default function LoginPage() {
     username: string
     password: string
     email?: string
-    role?: "student" | "admin"
   }
   //Dữ liệu test
   const mockUsers: User[] = [
-    { id: "1", username: "phanh", password: "123", email: "phanh@example.com", role: "student" },
-    { id: "2", username: "admin", password: "000", email: "admin@example.com", role: "admin" },
+    { id: "1", username: "phanh", password: "123", email: "phanh@gmail.com" },
+    { id: "2", username: "admin", password: "000", email: "admin@gmail.com" },
   ]
   type LoginErrors = {
     identifier: string
@@ -55,7 +54,9 @@ const [errors, setErrors] = useState<LoginErrors>({ identifier: "", password: ""
     if (user) {
       localStorage.setItem("currentUser", JSON.stringify(user))
       setIsLoading(true)
-      setTimeout(() => router.push("/course"), 1000)
+      const userLang = localStorage.getItem(`selectedLang:${user.id}`)
+      if (!userLang) setTimeout(() => router.push("/course/choose"),1000)
+      else setTimeout(() => router.push("/course"), 1000)
     } else {
       setErrors(prev => ({ ...prev, password: "Tên đăng nhập hoặc mật khẩu sai" }))
     }
@@ -137,4 +138,4 @@ const [errors, setErrors] = useState<LoginErrors>({ identifier: "", password: ""
       </div>
     </div>
   )
-}
+} 
