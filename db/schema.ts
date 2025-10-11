@@ -121,3 +121,21 @@ export const bang_xep_hang = pgTable("bang_xep_hang", {
     .references(() => nguoi_dung.ma_nguoi_dung, { onDelete: "cascade" }),
   tong_diem_xp: integer("tong_diem_xp").default(0).notNull(),
 });
+
+export const nguoi_dung_ngon_ngu = pgTable(
+  "nguoi_dung_ngon_ngu",
+  {
+    id: serial("id").primaryKey(),
+    ma_nguoi_dung: integer("ma_nguoi_dung")
+      .notNull()
+      .references(() => nguoi_dung.ma_nguoi_dung, { onDelete: "cascade" }),
+    ma_ngon_ngu: integer("ma_ngon_ngu")
+      .notNull()
+      .references(() => ngon_ngu.ma_ngon_ngu, { onDelete: "cascade" }),
+    is_active: boolean("is_active").notNull().default(false),
+    created_at: timestamp("created_at", { withTimezone: false }).defaultNow(),
+  },
+  (t) => ({
+    uqUserLang: uniqueIndex("uq_user_lang").on(t.ma_nguoi_dung, t.ma_ngon_ngu),
+  })
+);
