@@ -35,7 +35,7 @@ export const Header = ({ onLogout }: HeaderProps) => {
       <div className="flex items-center justify-between py-4">
         <div className="flex items-center gap-x-6">
           <Image src="/logo.png" alt="Logo" width={32} height={32} />
-          <span className="text-pink-300 font-bold text-4xl r">AAAP Polyglot</span>
+          <span className="text-pink-300 font-bold text-4xl">AAAP Polyglot</span>
           <nav className="flex gap-x-6 ml-6">
             {menuItems.map((item) => {
               const isActive = pathname === item.href

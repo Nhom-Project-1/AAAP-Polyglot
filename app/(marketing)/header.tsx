@@ -9,7 +9,7 @@ export const Header = () => {
     <header className="w-full border-b-2 border-slate-200 px-6">
       <div className="flex items-center justify-between py-4">
         
-        {/* Logo + tên + Trang chủ */}
+        {/* Logo + menu */}
         <div className="flex items-center gap-x-6">
           <Image src="/logo.png" alt="Logo" width={32} height={32} />
           <span className="text-pink-300 font-bold text-4xl">AAAP Polyglot</span>

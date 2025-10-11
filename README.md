@@ -40,3 +40,22 @@ npm install react-hot-toast
 npm install keen-slider
 npm install lucide-react
 npm install react-country-flag
+npm install framer-motion
+
+## Chức năng của các trang
+1. (marketing): Trang chủ
+2. account: Trang hiển thị và chỉnh sửa thông tin cá nhân
+3. course: Trang học tập chính, hiển thị danh sách chương và bài học
+4. choose: Trang chọn ngôn ngữ
+5. login: Trang đăng nhập
+6. forgot: Trang quên pass
+7. reset: Trang lấy lại pass
+8. signup: Trang đăng kí
+9. Các components:
+- ui: button.tsx cho các nút
+- footer, header
+- layout: gồm header, footer và phần nội dung, có logic tạm của logout (chỉ điều hướng chứ chưa làm gì)
+- loading: cái trang loading lúc người dùng chuyển trang (không sửa lúc merge)
+- scroll-reveal: hiệu ứng lướt lên dùng trong marketing\page.tsx (không sửa lúc merge)
+- user-progress: gồm icon cờ, chuỗi và điểm
+- unit-lesson: gọi đến unit tương ứng với ngôn ngữ và các lesson tương ứng với unit

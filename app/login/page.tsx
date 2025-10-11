@@ -9,7 +9,7 @@ export default function LoginPage() {
   const [identifier, setIdentifier] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading] = useState(false)
 
   type User = {
     id: string
@@ -28,7 +28,6 @@ export default function LoginPage() {
   }
 const [errors, setErrors] = useState<LoginErrors>({ identifier: "", password: "" })
 
-  //chỗ này nhét api của clerk để xác thực
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -52,11 +51,7 @@ const [errors, setErrors] = useState<LoginErrors>({ identifier: "", password: ""
         u.password === password
     )
     if (user) {
-      localStorage.setItem("currentUser", JSON.stringify(user))
-      setIsLoading(true)
-      const userLang = localStorage.getItem(`selectedLang:${user.id}`)
-      if (!userLang) setTimeout(() => router.push("/course/choose"),1000)
-      else setTimeout(() => router.push("/course"), 1000)
+      setTimeout(() => router.push("/course/choose"),1000)
     } else {
       setErrors(prev => ({ ...prev, password: "Tên đăng nhập hoặc mật khẩu sai" }))
     }

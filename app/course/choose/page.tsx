@@ -10,6 +10,10 @@ const languages = [
   { id: "en", label: "Tiếng Anh", code: "GB" },
   { id: "zh", label: "Tiếng Trung", code: "CN" },
   { id: "ar", label: "Tiếng Ả Rập", code: "SA" },
+  { id: "de", label: "Tiếng Đức", code: "DE" },
+  { id: "ja", label: "Tiếng Nhật", code: "JP" },
+  { id: "ko", label: "Tiếng Hàn", code: "KR" },
+  { id: "es", label: "Tiếng Tây Ban Nha", code: "ES" },
 ]
 
 export default function ChooseLanguagePage() {
@@ -21,7 +25,8 @@ export default function ChooseLanguagePage() {
     const t = toast.success("Bạn đã chọn " + lang.label, { duration: 2000 })
     setTimeout(() => {
       toast.dismiss(t)
-      router.push("/course") }, 1000)
+      router.push(`/course?lang=${lang.id}`)
+      }, 1000)
   }
 
   return (

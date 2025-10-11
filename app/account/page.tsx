@@ -9,7 +9,7 @@ export default function AccountPage() {
   const router = useRouter()
   const [fullName, setFullName] = useState("")
   const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
+  const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
@@ -17,14 +17,14 @@ export default function AccountPage() {
   type AccountErrors = {
     fullName: string
     username: string
-    password: string
+    currentPassword: string
     newPassword: string
   }
 
   const [errors, setErrors] = useState<AccountErrors>({
     fullName: "",
     username: "",
-    password: "",
+    currentPassword: "",
     newPassword: ""
   })
 
@@ -32,7 +32,7 @@ export default function AccountPage() {
     e.preventDefault()
 
     let valid = true
-    const newErrors: AccountErrors = { fullName: "", username: "", password: "", newPassword: "" }
+    const newErrors: AccountErrors = { fullName: "", username: "", currentPassword: "", newPassword: "" }
 
     if (!fullName.trim()) {
       newErrors.fullName = "Họ và tên không được bỏ trống"
@@ -42,18 +42,14 @@ export default function AccountPage() {
       newErrors.username = "Tên đăng nhập không được bỏ trống"
       valid = false
     }
-    if (!password.trim()) {
-      newErrors.password = "Mật khẩu không được bỏ trống"
+    if (!currentPassword.trim()) {
+      newErrors.currentPassword = "Mật khẩu không được bỏ trống"
       valid = false
     }
     if (!newPassword.trim()) {
       newErrors.newPassword = "Vui lòng nhập lại mật khẩu!"
       valid = false
-    } else if (password !== newPassword) {
-      newErrors.newPassword = "Mật khẩu nhập lại không khớp"
-      valid = false
-    }
-
+    } 
     setErrors(newErrors)
     if (!valid) return
     toast.success("Thay đổi thông tin thành công!",{duration: 3000})
@@ -96,16 +92,16 @@ export default function AccountPage() {
               />
               {errors.username && <p className="text-red-500 text-xs mt-1">{errors.username}</p>}
             </div>
-            {/* Mật khẩu */}
+            {/* Mật khẩu hiện tại*/}
             <div>
               <label className="block text-sm font-medium mb-1">Mật khẩu hiện tại</label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
-                  value={password}
+                  value={currentPassword}
                   onChange={(e) => {
                     const val = e.target.value
-                    setPassword(val)
+                    setCurrentPassword(val)
                     setErrors(prev => ({ ...prev, password: val.trim() ? "" : "Mật khẩu không được bỏ trống" }))
                   }}
                   className="w-full px-3 py-2 rounded-lg border border-pink-300 bg-white focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300"
@@ -114,7 +110,7 @@ export default function AccountPage() {
                   <img src={showPassword ? "/openeye.svg" : "/closeeye.svg"} alt="" className="h-5 w-5" />
                 </button>
               </div>
-              {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+              {errors.currentPassword && <p className="text-red-500 text-xs mt-1">{errors.currentPassword}</p>}
             </div>
             {/* Mật khẩu mới */}
             <div>
