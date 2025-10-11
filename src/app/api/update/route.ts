@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import pool from "../../../db";
-import bcrypt from "bcryptjs";
 import { auth, clerkClient } from "@clerk/nextjs/server";
+import bcrypt from "bcryptjs";
+import db, { schema } from "../../../../db/drizzle";
+import { and, eq, ne } from "drizzle-orm";
 
 type Body = {
-    fullName?: string;
-    username?: string;
-    currentPassword?: string;
-    newPassword?: string;
-}
+  fullName?: string;
+  username?: string;
+  currentPassword?: string;
+  newPassword?: string;
+};
 
 export async function PATCH(req: NextRequest) {
   const { userId } = await auth();
@@ -25,10 +26,11 @@ export async function PATCH(req: NextRequest) {
 
   const { username, fullName, currentPassword, newPassword } = body;
 
+  const client = await clerkClient();
+
   if (!username && !fullName && !newPassword) {
     return NextResponse.json({ error: "Không có dữ liệu để cập nhật" }, { status: 400 });
   }
-
   if (username && username.length > 20) {
     return NextResponse.json({ error: "Tên đăng nhập tối đa 20 ký tự." }, { status: 400 });
   }
@@ -49,44 +51,36 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Mật khẩu cần ít nhất 1 ký tự đặc biệt." }, { status: 400 });
     }
     if (newPassword === currentPassword) {
-    return NextResponse.json({ error: "Mật khẩu mới phải khác mật khẩu hiện tại." }, { status: 400 });
+      return NextResponse.json({ error: "Mật khẩu mới phải khác mật khẩu hiện tại." }, { status: 400 });
     }
   }
 
   try {
-    const client = await clerkClient();
-    const clerkUser = await client.users.getUser(userId);
-    const email = clerkUser.primaryEmailAddress?.emailAddress?.toLowerCase();
+    const user = await client.users.getUser(userId);
+    const email = user.primaryEmailAddress?.emailAddress?.toLowerCase();
     if (!email) {
       return NextResponse.json({ error: "Không tìm thấy email người dùng." }, { status: 400 });
     }
 
-    const cur = await pool.query(
-      `SELECT ma_nguoi_dung, ten_dang_nhap, email, mat_khau_hash
-       FROM nguoi_dung
-       WHERE LOWER(email) = $1
-       LIMIT 1`,
-      [email]
-    );
-    const dbUser = cur.rows[0];
+    const rows = await db
+      .select({
+        id: schema.nguoi_dung.ma_nguoi_dung,
+        email: schema.nguoi_dung.email,
+        hash: schema.nguoi_dung.mat_khau_hash,
+        ten_dn: schema.nguoi_dung.ten_dang_nhap,
+      })
+      .from(schema.nguoi_dung)
+      .where(eq(schema.nguoi_dung.email, email))
+      .limit(1);
+
+    const dbUser = rows[0];
     if (!dbUser) {
       return NextResponse.json({ error: "Không tìm thấy người dùng trong DB." }, { status: 404 });
     }
 
-    if (username && username !== dbUser.ten_dang_nhap) {
-      const dup = await pool.query(
-        `SELECT 1 FROM nguoi_dung
-         WHERE ten_dang_nhap = $1 AND ma_nguoi_dung <> $2`,
-        [username, dbUser.ma_nguoi_dung]
-      );
-      if (dup.rowCount) {
-        return NextResponse.json({ error: "Tên đăng nhập đã tồn tại." }, { status: 409 });
-      }
-    }
-
     let nextHash: string | undefined;
     if (newPassword) {
-      const ok = await bcrypt.compare(currentPassword!, dbUser.mat_khau_hash);
+      const ok = await bcrypt.compare(currentPassword!, dbUser.hash);
       if (!ok) {
         return NextResponse.json({ error: "Mật khẩu hiện tại không đúng." }, { status: 400 });
       }
@@ -94,47 +88,65 @@ export async function PATCH(req: NextRequest) {
       nextHash = await bcrypt.hash(newPassword, 10);
     }
 
+    if (username) {
+      const dup = await db
+        .select({ id: schema.nguoi_dung.ma_nguoi_dung })
+        .from(schema.nguoi_dung)
+        .where(
+          and(
+            eq(schema.nguoi_dung.ten_dang_nhap, username),
+            ne(schema.nguoi_dung.ma_nguoi_dung, dbUser.id)
+          )
+        )
+        .limit(1);
+
+      if (dup.length) {
+        return NextResponse.json({ error: "Tên đăng nhập đã tồn tại." }, { status: 409 });
+      }
+    }
+
     if (username || fullName) {
       const firstName = fullName ? (fullName.split(" ")[0] || fullName) : undefined;
-      const lastName =
-        fullName ? (fullName.split(" ").slice(1).join(" ") || "") : undefined;
+      const lastName = fullName ? (fullName.split(" ").slice(1).join(" ") || "") : undefined;
 
       await client.users.updateUser(userId, {
         ...(username ? { username } : {}),
         ...(firstName !== undefined ? { firstName } : {}),
         ...(lastName !== undefined ? { lastName } : {}),
-        ...(fullName ? { publicMetadata: { ...clerkUser.publicMetadata, fullName } } : {}),
+        ...(fullName ? { publicMetadata: { ...user.publicMetadata, fullName } } : {}),
       });
     }
 
-    const sets: string[] = [];
-    const params: any[] = [];
-    let i = 1;
+    const updates: Partial<typeof schema.nguoi_dung.$inferInsert> = {};
+    if (email) updates.email = email;
+    if (username) updates.ten_dang_nhap = username;
+    if (nextHash) updates.mat_khau_hash = nextHash;
+    updates.ngay_cap_nhat = new Date();
 
-    if (username) {
-      sets.push(`ten_dang_nhap = $${i++}`);
-      params.push(username);
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json(
+        {
+          message: "Cập nhật thành công!",
+          user: { ma_nguoi_dung: dbUser.id, email: dbUser.email, ho_ten: dbUser.ten_dn },
+        },
+        { status: 200 }
+      );
     }
-    if (nextHash) {
-      sets.push(`mat_khau_hash = $${i++}`);
-      params.push(nextHash);
-    }
-    sets.push(`ngay_cap_nhat = now()`);
-    params.push(dbUser.ma_nguoi_dung);
 
-    const { rows: updated } = await pool.query(
-      `UPDATE nguoi_dung
-       SET ${sets.join(", ")}
-       WHERE ma_nguoi_dung = $${i}
-       RETURNING ma_nguoi_dung, ten_dang_nhap, email, ngay_tao, ngay_cap_nhat`,
-      params
-    );
+    const updated = await db
+      .update(schema.nguoi_dung)
+      .set(updates)
+      .where(eq(schema.nguoi_dung.ma_nguoi_dung, dbUser.id))
+      .returning({
+        ma_nguoi_dung: schema.nguoi_dung.ma_nguoi_dung,
+        email: schema.nguoi_dung.email,
+        ten_dang_nhap: schema.nguoi_dung.ten_dang_nhap,
+        ngay_tao: schema.nguoi_dung.ngay_tao,
+        ngay_cap_nhat: schema.nguoi_dung.ngay_cap_nhat,
+      });
 
     return NextResponse.json(
-      {
-        message: "Cập nhật thành công!",
-        user: updated[0],
-      },
+      { message: "Cập nhật thành công!", user: updated[0] },
       { status: 200 }
     );
   } catch (err: any) {
@@ -153,6 +165,11 @@ export async function GET() {
   return NextResponse.json({
     message: "Update API OK",
     endpoint: "PATCH /api/update",
-    expects: { username: "optional", fullName: "optional", currentPassword: "required if change password", newPassword: "optional" },
+    expects: {
+      username: "đã lưu tren CLerk + db",
+      fullName: "đã lưu Clerk",
+      currentPassword: "required nếu đổi mật khẩu",
+      newPassword: "optional",
+    },
   });
 }
