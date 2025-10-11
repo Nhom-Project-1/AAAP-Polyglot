@@ -6,22 +6,34 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:studio": "npx drizzle-kit studio",
+    "db:push": "npx drizzle-kit push"
   },
   "dependencies": {
+    "@clerk/backend": "^2.17.0",
     "@clerk/nextjs": "^6.32.2",
+    "@neondatabase/serverless": "^1.0.2",
     "bcryptjs": "^3.0.2",
+    "cookie": "^1.0.2",
+    "dotenv": "^17.2.3",
+    "drizzle-orm": "^0.44.6",
+    "jsonwebtoken": "^9.0.2",
     "next": "^15.5.4",
+    "next-auth": "^4.24.11",
     "pg": "^8.16.3",
+    "postgres": "^3.4.7",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20.19.17",
     "@types/pg": "^8.15.5",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
+    "drizzle-kit": "^0.31.5",
     "typescript": "5.9.2"
   }
 }

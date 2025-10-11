@@ -82,7 +82,7 @@ export async function POST() {
       ('Tiếng Trung', 'Chinese (zh)'),
       ('Tiếng Pháp',  'French (fr)'),
       ('Tiếng Ả Rập', 'Arabic (ar)')
-    ) AS v(ten, mt)
+    ) AS v(ten, mt)-
     WHERE NOT EXISTS (
       SELECT 1 FROM ngon_ngu n WHERE n.ten_ngon_ngu = v.ten
     );
