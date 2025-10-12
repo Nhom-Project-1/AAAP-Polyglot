@@ -4,7 +4,6 @@ import bcrypt from "bcryptjs";
 import db, { schema } from "../../../../db/drizzle"; 
 
 export async function POST(req: NextRequest) {
-  const { userId } = await auth();
   try {
     const { email, password, fullName, username } = (await req.json()) as {
       email: string;
@@ -38,7 +37,28 @@ export async function POST(req: NextRequest) {
     const client = await clerkClient();
     const existingUsers = await client.users.getUserList({ emailAddress: [email] });
     if (existingUsers.data.length > 0) {
-      return NextResponse.json({ error: "Email đã tồn tại." }, { status: 400 });
+      return NextResponse.json({ error: "Email đã tồn tại trg clerk." }, { status: 400 });
+    }
+
+    const existedemailDb = await db.query.nguoi_dung.findFirst({
+      where: (t, { eq }) => eq(t.email, email),
+      columns: { ma_nguoi_dung: true },
+    });
+    if (existedemailDb) {
+      return NextResponse.json({ error: "Email đã tồn tại trong hệ thống." }, { status: 400 });
+    }
+
+    const usernameHit = await client.users.getUserList({ username: [username], limit: 1 });
+    if (usernameHit.data.length > 0) {
+      return NextResponse.json({ error: "Tên đăng nhập đã tồn tại trong clerk" }, { status: 400 });
+    }
+
+    const existeduserDb = await db.query.nguoi_dung.findFirst({
+      where: (t, { eq }) => eq(t.ten_dang_nhap, username),
+      columns: { ma_nguoi_dung: true },
+    });
+    if (existeduserDb) {
+      return NextResponse.json({ error: "Tên đăng nhập đã tồn tại trong hệ thống." }, { status: 400 });
     }
 
     const firstName = fullName.split(" ")[0] || fullName;
@@ -77,7 +97,6 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  const { userId } = await auth();
   return NextResponse.json({
     message: "Signup API đang hoạt động!",
     timestamp: new Date().toISOString(),
