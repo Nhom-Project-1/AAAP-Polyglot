@@ -31,6 +31,14 @@ export async function PATCH(req: NextRequest) {
   if (!username && !fullName && !newPassword) {
     return NextResponse.json({ error: "Không có dữ liệu để cập nhật" }, { status: 400 });
   }
+  
+  if (body.hasOwnProperty("username") && !username?.trim()) {
+    return NextResponse.json({ error: "Tên đăng nhập không được để trống." }, { status: 400 });
+  }
+  if (body.hasOwnProperty("fullName") && !fullName?.trim()) {
+    return NextResponse.json({ error: "Họ tên không được để trống." }, { status: 400 });
+  }
+
   if (username && username.length > 20) {
     return NextResponse.json({ error: "Tên đăng nhập tối đa 20 ký tự." }, { status: 400 });
   }
@@ -78,6 +86,17 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Không tìm thấy người dùng trong DB." }, { status: 404 });
     }
 
+
+    const currentFullName = (user.publicMetadata?.fullName as string | undefined)?.trim() || "";
+    const isSameUsername = username === dbUser.ten_dn || !username;
+    const isSameFullName = fullName?.trim() === currentFullName || !fullName;
+    const noNewPassword = !newPassword?.trim();
+
+    if (isSameUsername && isSameFullName && noNewPassword) {
+      return NextResponse.json({ error: "Không có thay đổi nào để cập nhật." }, { status: 400 });
+    }
+    //
+
     let nextHash: string | undefined;
     if (newPassword) {
       const ok = await bcrypt.compare(currentPassword!, dbUser.hash);
@@ -104,17 +123,23 @@ export async function PATCH(req: NextRequest) {
         return NextResponse.json({ error: "Tên đăng nhập đã tồn tại." }, { status: 409 });
       }
     }
-
+    
     if (username || fullName) {
-      const firstName = fullName ? (fullName.split(" ")[0] || fullName) : undefined;
-      const lastName = fullName ? (fullName.split(" ").slice(1).join(" ") || "") : undefined;
+      if (fullName) {
+        const parts = fullName.trim().split(/\s+/);
+        const firstName = parts.shift() || "";
+        const lastName = parts.join(" ");
 
-      await client.users.updateUser(userId, {
-        ...(username ? { username } : {}),
-        ...(firstName !== undefined ? { firstName } : {}),
-        ...(lastName !== undefined ? { lastName } : {}),
-        ...(fullName ? { publicMetadata: { ...user.publicMetadata, fullName } } : {}),
-      });
+        await client.users.updateUser(userId, {
+          firstName,
+          lastName,
+          publicMetadata: { ...user.publicMetadata, fullName },
+        });
+      }
+
+      if (username) {
+        await client.users.updateUser(userId, { username });
+      }
     }
 
     const updates: Partial<typeof schema.nguoi_dung.$inferInsert> = {};
