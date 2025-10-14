@@ -9,7 +9,7 @@ export default function LoginPage() {
   const [identifier, setIdentifier] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
-  const [isLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   type User = {
     id: string
@@ -51,6 +51,7 @@ const [errors, setErrors] = useState<LoginErrors>({ identifier: "", password: ""
         u.password === password
     )
     if (user) {
+      setIsLoading(true)
       setTimeout(() => router.push("/course/choose"),1000)
     } else {
       setErrors(prev => ({ ...prev, password: "Tên đăng nhập hoặc mật khẩu sai" }))

@@ -38,7 +38,7 @@ export const Header = ({ onLogout }: HeaderProps) => {
           <span className="text-pink-300 font-bold text-4xl">AAAP Polyglot</span>
           <nav className="flex gap-x-6 ml-6">
             {menuItems.map((item) => {
-              const isActive = pathname === item.href
+              const isActive = pathname.startsWith(item.href)
               return (
                 <span key={item.href} onClick={() => handleMenuClick(item.href)} className={`text-2xl cursor-pointer transition-colors ${
                     isActive

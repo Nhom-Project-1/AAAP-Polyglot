@@ -42,6 +42,10 @@ npm install lucide-react
 npm install react-country-flag
 npm install framer-motion
 
+## Web sử dụng để chuyển văn bản thành âm thanh
+1. https://luvvoice.com/
+2.  
+
 ## Chức năng của các trang
 1. (marketing): Trang chủ
 2. account: Trang hiển thị và chỉnh sửa thông tin cá nhân
@@ -59,3 +63,6 @@ npm install framer-motion
 - scroll-reveal: hiệu ứng lướt lên dùng trong marketing\page.tsx (không sửa lúc merge)
 - user-progress: gồm icon cờ, chuỗi và điểm
 - unit-lesson: gọi đến unit tương ứng với ngôn ngữ và các lesson tương ứng với unit
+- crying: Mặt khóc lúc không tìm được chương/bài học
+10. lesson: Trang bài học, hiển thị vocab và nút bắt đầu làm bài
+11. challenge: Trang challenge

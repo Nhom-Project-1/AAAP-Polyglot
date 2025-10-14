@@ -1,9 +1,12 @@
 "use client"
-import { useEffect, useState } from "react"
+
+import { useSearchParams, useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { useRouter,useSearchParams } from "next/navigation"
+import { useMemo } from "react"
+import { ArrowLeft, Volume2 } from "lucide-react"
+import Layout from "@/components/layout"
+import UserProgress from "@/components/user-progress"
 import Crying from "@/components/crying"
-import Loading from "@/components/loading"
 
 type Unit = {
   id: number
@@ -21,13 +24,57 @@ type Lesson = {
   order: number
 }
 
-export default function UnitLesson() {
-  const [units, setUnits] = useState<Unit[]>([])
-  const [lessons, setLessons] = useState<Lesson[]>([])
+type Vocab = {
+  ma_tu: number
+  ma_bai_hoc: number
+  tu: string
+  nghia: string
+  phien_am: string
+  lien_ket_am_thanh: string
+  vi_du: string
+}
+
+export const mockVocabs: Vocab[] = [
+  {
+    ma_tu: 1,
+    ma_bai_hoc: 1,
+    tu: "apple",
+    nghia: "quả táo",
+    phien_am: "/ˈæp.əl/",
+    lien_ket_am_thanh: "/apple.mp3", 
+    vi_du: "I like eating an apple every day."
+  },
+  {
+    ma_tu: 2,
+    ma_bai_hoc: 1,
+    tu: "book",
+    nghia: "cuốn sách",
+    phien_am: "/bʊk/",
+    lien_ket_am_thanh: "/book.mp3",
+    vi_du: "This book is very interesting."
+  },
+  {
+    ma_tu: 3,
+    ma_bai_hoc: 1,
+    tu: "cat",
+    nghia: "con mèo",
+    phien_am: "/kæt/",
+    lien_ket_am_thanh: "/cat.mp3",
+    vi_du: "The cat is sleeping on the sofa."
+  },
+]
+
+export default function LessonPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const languageId = searchParams.get("lang") 
-  const allUnits: Unit[] = [
+  const playAudio = (src: string) => {
+  const audio = new Audio(src)
+  audio.play()
+}
+  const lessonId = Number(searchParams.get("id"))
+  const unitId = Number(searchParams.get("unit"))
+  
+   const allUnits: Unit[] = [
     { id: 1, title: "Chương 1", description: "Bắt đầu với tiếng Anh", languageId: "en", order: 1 },
     { id: 2, title: "Chương 2", description: "Từ vựng giao tiếp hàng ngày", languageId: "en", order: 2 },
 
@@ -109,89 +156,79 @@ export default function UnitLesson() {
     { id: 38, title: "Bài học 3", description: "Từ vựng giao tiếp hàng ngày", unitId: 16, order: 1 },
     { id: 39, title: "Bài học 4", description: "Từ vựng về địa điểm và cuộc sống", unitId: 16, order: 2 },
   ]
-  const [loading, setLoading] = useState(true)
-  useEffect(() => {
-  if (!languageId) return
-  const filteredUnits = allUnits.filter((u) => u.languageId === languageId)
-  const unitIds = filteredUnits.map((u) => u.id)
-  const filteredLessons = allLessons.filter((l) => unitIds.includes(l.unitId))
 
-  setUnits(filteredUnits)
-  setLessons(filteredLessons)
-  setLoading(false) 
-}, [languageId])
+  const { lesson, unit } = useMemo(() => {
+    const foundLesson = allLessons.find(l => l.id === lessonId) || null
+    const foundUnit = allUnits.find(u => u.id === unitId) || null
+    return { lesson: foundLesson, unit: foundUnit }
+  }, [lessonId, unitId])
 
-if (loading) return <Loading />
-
-if (!units.length)
-  return (
-    <div className="flex flex-col items-center justify-center mt-16">
-      <Crying size={128} />
-      <p className="text-gray-500 text-lg font-medium mt-4">Không có chương nào cho ngôn ngữ này.</p>
-      <button
-        onClick={() => router.push("/course/choose")}
-        className="mt-2 text-sm text-pink-400 hover:underline"
+if (!lesson || !unit) 
+  return(
+    <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
+      <Crying size={150} /> 
+      <p className="text-gray-500 text-lg font-medium text-center">
+        Không tìm thấy bài học này
+      </p>
+       <button
+        onClick={() => router.push("/course")}
+        className="mt-2 text-sm text-pink-500 hover:underline cursor-pointer"
       >
-        Chọn ngôn ngữ khác
+        Chọn bài học khác
       </button>
     </div>
   )
-return (
-    <div className="space-y-16 mt-8 pl-6">
-      {units.map((unit, unitIndex) => {
-        const unitLessons = lessons.filter((l) => l.unitId === unit.id)
-        const direction = unitIndex % 2 === 0 ? 1 : -1
+ return (
+  <Layout>
+    <main className="relative p-6 min-h-screen">
+      <div className="absolute top-4 right-6">
+        <UserProgress />
+      </div>
 
-        return (
-          <div key={unit.id} className="flex flex-col items-center">
-            <div className="bg-pink-400 text-white rounded-lg shadow-md px-4 py-2 mb-10 w-1/4 text-center">
-              <h2 className="text-lg font-bold">{unit.title}</h2>
-              <h2 className="text-lg font-bold">{unit.description}</h2>
+      <div className="flex items-center gap-4 mb-4">
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          onClick={() => router.back()}
+          className="text-pink-500 hover:text-pink-600 cursor-pointer"        
+        >
+          <ArrowLeft size={25} strokeWidth={2} />
+        </motion.button>
+
+        <h1 className="text-3xl font-bold text-pink-500">
+          {lesson.title}: {lesson.description}
+        </h1>
+      </div>
+      <div className="text-center mt-8">
+        <p className="text-3xl font-semibold">Danh sách từ vựng</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        {mockVocabs.map((v) => (
+          <div key={v.ma_tu} className="border rounded-xl p-4 shadow-md flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-bold">{v.tu} <span className="text-gray-500">{v.phien_am}</span></h3>
+              <p className="text-gray-700 mb-2">{v.nghia}</p>
+              <p className="italic text-gray-500">{v.vi_du}</p>
             </div>
-
-            {/* danh sách bài học */}
-            <div className="relative w-full flex flex-col items-center space-y-28">
-              {unitLessons.map((lesson, index) => {
-                const waveOffset = Math.sin(index * 1.1) * 120 * direction
-
-                return (
-                  <div
-                    key={lesson.id}
-                    className="relative flex flex-col items-center"
-                    style={{
-                      transform: `translateX(${waveOffset}px)`,
-                    }}>
-                    {index === 0 && (
-                      <motion.span
-                        animate={{ y: [0, -6, 0] }}
-                        transition={{
-                          duration: 1.2,
-                          repeat: Infinity,
-                          ease: "easeInOut",
-                        }}
-                        className="text-pink-500 font-semibold mb-2">
-                        Start
-                      </motion.span>
-                    )}
-
-                    <motion.div
-                      whileHover={{
-                        scale: 1.1,
-                        boxShadow: "0 0 20px rgba(236,72,153,0.6)",
-                      }}
-                      transition={{ type: "spring", stiffness: 300 }}
-                      className="w-20 h-20 flex items-center justify-center rounded-full text-white shadow-lg cursor-pointer bg-pink-400 border-4 border-pink-200"
-                       onClick={() => router.push(`/course/lesson?id=${lesson.id}&unit=${unit.id}`)}
-                    >
-                      <span className="text-lg font-bold">{lesson.order}</span>
-                    </motion.div>
-                  </div>
-                )
-              })}
-            </div>
+            <button
+              onClick={() => playAudio(v.lien_ket_am_thanh)}
+              className="ml-4 text-pink-500 hover:text-pink-600 cursor-pointer"
+            >
+              <Volume2 size={24} />
+            </button>
           </div>
-        )
-      })}
-    </div>
-  )
+        ))}
+      </div>
+       <div className="flex justify-center mt-12 mb-6">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() =>  router.push("/course/challenge")}
+          className="bg-pink-400 text-white px-8 py-3 rounded-xl font-semibold shadow-md hover:bg-pink-500 transition cursor-pointer"
+        >
+          Bắt đầu làm bài
+        </motion.button>
+      </div>
+    </main>
+  </Layout>
+)
 }
