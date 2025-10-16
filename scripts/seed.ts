@@ -8,28 +8,64 @@ const db = drizzle(sql, { schema });
 
 async function main() {
     try{
+
         console.log("Seeding database...");
 
-        await db.insert(schema.unit).values([
-            {
-                ten_don_vi: "Unit 1",
-                ma_ngon_ngu: 1,
-                mo_ta: "Learn the basics of English",
-            }
-        ]);
+        await db.delete(schema.tu_vung);
+        await db.delete(schema.bai_hoc);
+        await db.delete(schema.unit);
 
-        await db.insert(schema.bai_hoc).values([
-            {
-                ten_bai_hoc: "Nouns",
-                ma_don_vi: 1,
-                mo_ta: "Danh từ",
-            },
-             {
-                ten_bai_hoc: "Verbs",
-                ma_don_vi: 1,
-                mo_ta: "Động từ",
+
+        const language = await db.select().from(schema.ngon_ngu);
+
+        for (const i of language){
+            const units = await db.insert(schema.unit).values([
+                {
+                    ten_don_vi: "Unit 1",
+                    ma_ngon_ngu: i.ma_ngon_ngu,
+                    mo_ta: `Bắt đầu với ${i.ten_ngon_ngu} cơ bản`,
+                },
+                {
+                    ten_don_vi: "Unit 2",
+                    ma_ngon_ngu: i.ma_ngon_ngu,
+                    mo_ta: `Ngũ pháp cơ bản trong ${i.ten_ngon_ngu}`,
+                }
+            ])
+            .returning({
+                id: schema.unit.ma_don_vi,
+                name: schema.unit.ten_don_vi,
+            }) as { id: number; name: string }[];;
+
+            for (const u of units){
+                const lessons = await db.insert(schema.bai_hoc).values([
+                    {
+                        ten_bai_hoc: "Nouns",
+                        ma_don_vi: u.id,
+                        mo_ta: "Danh từ",
+                    },
+                    {
+                        ten_bai_hoc: "Verbs",
+                        ma_don_vi: u.id,
+                        mo_ta: "Động từ",
+                    }
+                ])
+                .returning({
+                    id: schema.bai_hoc.ma_bai_hoc,
+                    name: schema.bai_hoc.ten_bai_hoc,
+                }) as { id: number; name: string }[];;
+
+                for (const l of lessons){
+                    const vocab = await db.insert(schema.tu_vung).values([
+                        {
+                            ma_bai_hoc: l.id,
+                            tu: "Apple",
+                            nghia: "Quả táo",
+                        }
+                    ])
+                }
             }
-        ]);
+        };
+        
 
     }catch(error){
         console.error("Error seeding database:", error);
