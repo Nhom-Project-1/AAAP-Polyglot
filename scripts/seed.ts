@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
+import { sql as dsql } from "drizzle-orm"; 
 import * as schema from "../db/schema";
 
 const sql = neon(process.env.DATABASE_URL!); 
@@ -15,7 +16,9 @@ async function main() {
         await db.delete(schema.bai_hoc);
         await db.delete(schema.unit);
 
-
+        await db.execute(
+            dsql `TRUNCATE TABLE "tu_vung", "bai_hoc", "unit" RESTART IDENTITY CASCADE`
+        );
         const language = await db.select().from(schema.ngon_ngu);
 
         for (const i of language){
@@ -28,7 +31,7 @@ async function main() {
                 {
                     ten_don_vi: "Unit 2",
                     ma_ngon_ngu: i.ma_ngon_ngu,
-                    mo_ta: `Ngũ pháp cơ bản trong ${i.ten_ngon_ngu}`,
+                    mo_ta: `Ngữ pháp cơ bản trong ${i.ten_ngon_ngu}`,
                 }
             ])
             .returning({
@@ -54,15 +57,6 @@ async function main() {
                     name: schema.bai_hoc.ten_bai_hoc,
                 }) as { id: number; name: string }[];;
 
-                for (const l of lessons){
-                    const vocab = await db.insert(schema.tu_vung).values([
-                        {
-                            ma_bai_hoc: l.id,
-                            tu: "Apple",
-                            nghia: "Quả táo",
-                        }
-                    ])
-                }
             }
         };
         
