@@ -12,12 +12,10 @@ async function main() {
 
         console.log("Seeding database...");
 
-        await db.delete(schema.tu_vung);
-        await db.delete(schema.bai_hoc);
         await db.delete(schema.unit);
 
         await db.execute(
-            dsql `TRUNCATE TABLE "tu_vung", "bai_hoc", "unit" RESTART IDENTITY CASCADE`
+            dsql `TRUNCATE TABLE "unit" RESTART IDENTITY CASCADE`
         );
         const language = await db.select().from(schema.ngon_ngu);
 
@@ -39,25 +37,6 @@ async function main() {
                 name: schema.unit.ten_don_vi,
             }) as { id: number; name: string }[];;
 
-            for (const u of units){
-                const lessons = await db.insert(schema.bai_hoc).values([
-                    {
-                        ten_bai_hoc: "Nouns",
-                        ma_don_vi: u.id,
-                        mo_ta: "Danh từ",
-                    },
-                    {
-                        ten_bai_hoc: "Verbs",
-                        ma_don_vi: u.id,
-                        mo_ta: "Động từ",
-                    }
-                ])
-                .returning({
-                    id: schema.bai_hoc.ma_bai_hoc,
-                    name: schema.bai_hoc.ten_bai_hoc,
-                }) as { id: number; name: string }[];;
-
-            }
         };
         
 
