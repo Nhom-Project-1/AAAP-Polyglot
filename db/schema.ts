@@ -2,6 +2,7 @@ import {
   pgTable, serial, integer, varchar, text, timestamp, boolean, date,
   uniqueIndex
 } from "drizzle-orm/pg-core";
+import { on } from "events";
 
 
 export const nguoi_dung = pgTable(
@@ -74,8 +75,8 @@ export const tu_vung = pgTable("tu_vung", {
   ma_bai_hoc: integer("ma_bai_hoc")
     .references(() => bai_hoc.ma_bai_hoc, { onDelete: "cascade" }),
   tu: varchar("tu", { length: 100 }).notNull(),
+  phien_am: varchar("phien_am", { length: 100 }),
   nghia: varchar("nghia", { length: 255 }),
-  vi_du: text("vi_du"),
   lien_ket_am_thanh: text("lien_ket_am_thanh"),
 });
 
