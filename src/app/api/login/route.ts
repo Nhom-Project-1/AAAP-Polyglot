@@ -57,11 +57,11 @@ export async function POST(req: NextRequest) {
       // Nếu bạn cần JWT riêng của hệ thống, tạo tại đây rồi trả về
       timestamp: new Date().toISOString(),
     });
-  } catch (err: any) {
-    console.error("Lỗi login (Clerk):", err);
-    return NextResponse.json(
-      { error: "Có lỗi xảy ra khi đăng nhập." },
-      { status: 500 }
-    );
+  } catch (err: unknown) {
+  console.error("Lỗi login (Clerk):", err);
+  return NextResponse.json(
+    { error: err instanceof Error ? err.message : "Có lỗi xảy ra khi đăng nhập." },
+    { status: 500 }
+  );
   }
 }   

@@ -3,11 +3,17 @@ import db, { schema } from "../../../../db/drizzle";
 import { and, eq, ilike, desc } from "drizzle-orm";
 
 export async function POST(req: NextRequest) {
-  let body: any;
-  try { 
-    body = await req.json(); 
-  }catch { 
-    return NextResponse.json({ error: "Body không phải JSON hợp lệ" }, { status: 400 }); 
+    type PostBody = {
+    ma_nguoi_dung: number | string;
+    languageId?: number | string;
+    languageName?: string;
+  };
+
+  let body: PostBody;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Body không phải JSON hợp lệ" }, { status: 400 });
   }
 
   const { ma_nguoi_dung, languageId, languageName } = body;
@@ -65,7 +71,8 @@ export async function POST(req: NextRequest) {
         });
 
       break; 
-    } catch (e: any) {
+      } catch (e: unknown) {
+      console.error("Lỗi đặt ngôn ngữ active:", e);
       attempts++;
       if (attempts >= 2) {
         return NextResponse.json({ error: "Không thể đặt ngôn ngữ active (xung đột)." }, { status: 409 });

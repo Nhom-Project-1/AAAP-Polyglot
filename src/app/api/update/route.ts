@@ -174,15 +174,18 @@ export async function PATCH(req: NextRequest) {
       { message: "Cập nhật thành công!", user: updated[0] },
       { status: 200 }
     );
-  } catch (err: any) {
-    console.error("Lỗi update:", err);
-    if (err?.errors) {
-      return NextResponse.json({ error: err.errors }, { status: 422 });
+  } catch (err: unknown) {
+    console.error("Lỗi update:", err)
+    if (err instanceof Error) {
+      return NextResponse.json({ error: err.message }, { status: 500 })
     }
-    if (err?.code === "23505") {
-      return NextResponse.json({ error: "Giá trị đã tồn tại." }, { status: 409 });
+    type ClerkError = { errors?: unknown; code?: string };
+    if (err && typeof err === "object") {
+      const e = err as ClerkError;
+      if (e.errors) return NextResponse.json({ error: e.errors }, { status: 422 });
+      if (e.code === "23505") return NextResponse.json({ error: "Giá trị đã tồn tại." }, { status: 409 });
     }
-    return NextResponse.json({ error: "Có lỗi xảy ra khi cập nhật." }, { status: 500 });
+    return NextResponse.json({ error: "Có lỗi xảy ra khi cập nhật." }, { status: 500 })
   }
 }
 

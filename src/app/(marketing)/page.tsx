@@ -7,9 +7,11 @@ import "keen-slider/keen-slider.min.css"
 import ReactCountryFlag from "react-country-flag"
 import ScrollReveal from "@/components/scroll-reveal"
 
+type KeenSliderInstanceType = NonNullable<ReturnType<typeof useKeenSlider>[1]["current"]>
+
 function AutoplayPlugin(interval = 2000) {
-  return (slider: any) => {
-    let timeout: any
+  return (slider: KeenSliderInstanceType) => {
+    let timeout: ReturnType<typeof setTimeout>
     let mouseOver = false
 
     function clearNextTimeout() {
@@ -134,7 +136,7 @@ export default function Home() {
           {students.map((s) => (
             <div key={s.id} className="keen-slider__slide flex flex-col items-center p-4 min-w-[200px]">
               <img src={s.img} alt={s.name} width={150} height={150} className="w-36 h-36 rounded-full mb-4 object-cover shadow-lg border-2 border-pink-200"/>
-              <p className="text-sm text-gray-600 text-justify">"{s.review}"</p>
+              <p className="text-sm text-gray-600 text-justify">&quot;{s.review}&quot;</p>
             </div>
           ))}
         </div>

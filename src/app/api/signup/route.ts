@@ -87,12 +87,15 @@ export async function POST(req: NextRequest) {
       userId: user.id,
       timestamp: new Date().toISOString(),
     });
-  } catch (err: any) {
-    console.error("Lỗi signup:", err);
-    if (err?.errors) {
-      return NextResponse.json({ error: err.errors }, { status: 422 });
+  } catch (err: unknown) {
+    console.error("Lỗi signup:", err)
+    if (err instanceof Error) {
+      return NextResponse.json({ error: err.message }, { status: 500 })
     }
-    return NextResponse.json({ error: "Có lỗi xảy ra khi đăng ký." }, { status: 500 });
+    if (err && typeof err === "object" && "errors" in err) {
+      return NextResponse.json({ error: (err as  { errors: unknown }).errors }, { status: 422 })
+    }
+    return NextResponse.json({ error: "Có lỗi xảy ra khi đăng ký." }, { status: 500 })
   }
 }
 

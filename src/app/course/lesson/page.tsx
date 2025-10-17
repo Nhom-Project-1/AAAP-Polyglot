@@ -1,6 +1,6 @@
 "use client"
 
-import { useSearchParams, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { useMemo } from "react"
 import { ArrowLeft, Volume2 } from "lucide-react"
@@ -33,46 +33,20 @@ type Vocab = {
   lien_ket_am_thanh: string
   vi_du: string
 }
-
-export const mockVocabs: Vocab[] = [
-  {
-    ma_tu: 1,
-    ma_bai_hoc: 1,
-    tu: "apple",
-    nghia: "quả táo",
-    phien_am: "/ˈæp.əl/",
-    lien_ket_am_thanh: "/apple.mp3", 
-    vi_du: "I like eating an apple every day."
-  },
-  {
-    ma_tu: 2,
-    ma_bai_hoc: 1,
-    tu: "book",
-    nghia: "cuốn sách",
-    phien_am: "/bʊk/",
-    lien_ket_am_thanh: "/book.mp3",
-    vi_du: "This book is very interesting."
-  },
-  {
-    ma_tu: 3,
-    ma_bai_hoc: 1,
-    tu: "cat",
-    nghia: "con mèo",
-    phien_am: "/kæt/",
-    lien_ket_am_thanh: "/cat.mp3",
-    vi_du: "The cat is sleeping on the sofa."
-  },
-]
-
+interface LessonPageProps {
+  params: {
+    unitId: string
+    lessonId: string
+  }
+}
 export default function LessonPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
+  const lessonId = 1
+  const unitId = 1
   const playAudio = (src: string) => {
   const audio = new Audio(src)
   audio.play()
 }
-  const lessonId = Number(searchParams.get("id"))
-  const unitId = Number(searchParams.get("unit"))
   
    const allUnits: Unit[] = [
     { id: 1, title: "Chương 1", description: "Bắt đầu với tiếng Anh", languageId: "en", order: 1 },
@@ -157,12 +131,17 @@ export default function LessonPage() {
     { id: 39, title: "Bài học 4", description: "Từ vựng về địa điểm và cuộc sống", unitId: 16, order: 2 },
   ]
 
+  const allVocab: Vocab[] = [
+  { ma_tu: 1, ma_bai_hoc: 1, tu: "apple", nghia: "quả táo", phien_am: "/ˈæp.əl/", lien_ket_am_thanh: "/apple.mp3", vi_du: "I like eating an apple every day." },
+  {  ma_tu: 2, ma_bai_hoc: 1, tu: "book", nghia: "cuốn sách",  phien_am: "/bʊk/", lien_ket_am_thanh: "/book.mp3", vi_du: "This book is very interesting." },
+  {  ma_tu: 3, ma_bai_hoc: 2, tu: "red", nghia: "màu đỏ", phien_am: "/rɛd/", lien_ket_am_thanh: "/red.mp3", vi_du: "The apple is red." },
+]
   const { lesson, unit } = useMemo(() => {
     const foundLesson = allLessons.find(l => l.id === lessonId) || null
     const foundUnit = allUnits.find(u => u.id === unitId) || null
     return { lesson: foundLesson, unit: foundUnit }
   }, [lessonId, unitId])
-  const lessonVocabs = mockVocabs.filter(v => v.ma_bai_hoc === lesson?.id)
+  const lessonVocabs = allVocab.filter(v => v.ma_bai_hoc === lesson?.id)
 
 if (!lesson || !unit) 
   return(
