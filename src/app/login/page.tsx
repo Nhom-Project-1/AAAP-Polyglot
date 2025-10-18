@@ -1,4 +1,5 @@
 "use client"
+
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { useRouter } from "next/navigation" 
@@ -10,60 +11,46 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
-  type User = {
-    id: string
-    username: string
-    password: string
-    email?: string
-  }
-  //Dữ liệu test
-  const mockUsers: User[] = [
-    { id: "1", username: "phanh", password: "123", email: "phanh@gmail.com" },
-    { id: "2", username: "admin", password: "000", email: "admin@gmail.com" },
-  ]
-  type LoginErrors = {
-    identifier: string
-    password: string
-  }
-const [errors, setErrors] = useState<LoginErrors>({ identifier: "", password: "" })
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    let valid = true
-    const newErrors: LoginErrors = { identifier: "", password: "" }
-
-    if (!identifier.trim()) {
-      newErrors.identifier = "Tên đăng nhập hoặc email không được bỏ trống"
-      valid = false
-    }
-    if (!password.trim()) {
-      newErrors.password = "Mật khẩu không được bỏ trống"
-      valid = false
-    }
-    setErrors(newErrors)
-
-    if (!valid) return
-    const user = mockUsers.find(
-      (u) =>
-        (u.username === identifier || u.email === identifier) &&
-        u.password === password
-    )
-    if (user) {
+    setError("")
+    try {
       setIsLoading(true)
-      setTimeout(() => router.push("/course/choose"),1000)
-    } else {
-      setErrors(prev => ({ ...prev, password: "Tên đăng nhập hoặc mật khẩu sai" }))
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier, password }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || "Có lỗi xảy ra")
+        setIsLoading(false)
+        return
+      }
+
+      // đăng nhập thành công, redirect
+      router.push("/course/choose")
+    } catch (err) {
+      console.error(err)
+      setError("Có lỗi xảy ra. Vui lòng thử lại")
+      setIsLoading(false)
     }
-    
   }
+
   if (isLoading) return <Loading/>
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-white-50">
       <div className="w-full max-w-md bg-gray p-8 rounded-2xl shadow-md">
-        <h1 className="text-2xl text-black-500 font-bold text-center mb-6">Đăng nhập vào AAAP Polyglot</h1>
+        <h1 className="text-2xl text-black-500 font-bold text-center mb-6">
+          Đăng nhập vào AAAP Polyglot
+        </h1>
         <form onSubmit={handleSubmit} className="space-y-4">
+
           {/*Username hoặc email*/}
           <div>
             <label className="block text-sm font-medium mb-1 text-black-500">
@@ -72,14 +59,9 @@ const [errors, setErrors] = useState<LoginErrors>({ identifier: "", password: ""
             <input
               type="text"
               value={identifier}
-              onChange={(e) => {setIdentifier(e.target.value) 
-                            if (errors.identifier && e.target.value.trim() !== "") {setErrors(prev => ({ ...prev, identifier: "" }))}
-                        }}
-              className="w-full border border-pink-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus: ring-pink-300 focus:border-pink-300"
+              onChange={(e) => setIdentifier(e.target.value)}
+              className="w-full border border-pink-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300"
             />
-            {errors.identifier && (
-              <p className="text-red-500 text-xs mt-1">{errors.identifier}</p>
-            )}
           </div>
 
           {/* Mật khẩu */}
@@ -89,10 +71,8 @@ const [errors, setErrors] = useState<LoginErrors>({ identifier: "", password: ""
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
-                onChange={(e) => {setPassword(e.target.value) 
-                            if (errors.password && e.target.value.trim() !== "") {setErrors(prev => ({ ...prev, password: "" }))}
-                        }}  
-                className="w-full border border-pink-300 rounded-lg px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus: ring-pink-300 focus:border-pink-300"
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full border border-pink-300 rounded-lg px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300"
               />
               <button
                 type="button"
@@ -106,14 +86,14 @@ const [errors, setErrors] = useState<LoginErrors>({ identifier: "", password: ""
                 />
               </button>
             </div>
-            {errors.password && (
-              <p className="text-red-500 text-xs mt-1">{errors.password}</p>
-            )}
           </div>
 
-          {}
-          <div className="flex justify-between">
-            <Button variant="secondary" className="px-8 py-3 mx-auto block w-40 cursor-pointer" type="submit">Đăng nhập</Button>
+          {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+
+          <div className="flex justify-center">
+            <Button variant="secondary" className="px-8 py-3 w-40 cursor-pointer" type="submit">
+              Đăng nhập
+            </Button>
           </div>
         </form>
 
@@ -134,4 +114,4 @@ const [errors, setErrors] = useState<LoginErrors>({ identifier: "", password: ""
       </div>
     </div>
   )
-} 
+}
