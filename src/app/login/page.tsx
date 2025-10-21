@@ -17,7 +17,6 @@ export default function LoginPage() {
     e.preventDefault()
     setError("")
     try {
-      setIsLoading(true)
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -28,16 +27,14 @@ export default function LoginPage() {
 
       if (!res.ok) {
         setError(data.error || "Có lỗi xảy ra")
-        setIsLoading(false)
         return
       }
-
-      // đăng nhập thành công, redirect
+      
       router.push("/course/choose")
+      setIsLoading(true)
     } catch (err) {
       console.error(err)
       setError("Có lỗi xảy ra. Vui lòng thử lại")
-      setIsLoading(false)
     }
   }
 
