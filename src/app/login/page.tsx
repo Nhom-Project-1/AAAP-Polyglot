@@ -14,29 +14,39 @@ export default function LoginPage() {
   const [error, setError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    try {
-      const res = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, password }),
-      })
+  e.preventDefault()
+  setError("")
+  setIsLoading(true)
+  try {
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identifier, password }),
+    })
 
-      const data = await res.json()
+    const data = await res.json()
 
-      if (!res.ok) {
-        setError(data.error || "Có lỗi xảy ra")
-        return
-      }
-      
-      router.push("/course/choose")
-      setIsLoading(true)
-    } catch (err) {
-      console.error(err)
-      setError("Có lỗi xảy ra. Vui lòng thử lại")
+    if (!res.ok) {
+      setError(data.error || "Có lỗi xảy ra")
+      setIsLoading(false)
+      return
     }
+
+    const langRes = await fetch("/api/user-language")
+    const langData = await langRes.json()
+
+    if (langData.current) {
+       router.push(`/course?lang=${langData.current.id}`)        
+    } else {
+      router.push("/course/choose")  
+    }
+
+  } catch (err) {
+    console.error(err)
+    setError("Có lỗi xảy ra. Vui lòng thử lại")
+    setIsLoading(false)
   }
+}
 
   if (isLoading) return <Loading/>
 

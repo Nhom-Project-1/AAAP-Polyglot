@@ -69,11 +69,31 @@ export async function POST(req: NextRequest) {
       mat_khau_hash: hashed,
     });
 
-    return NextResponse.json({
+    const existingUser = await db.query.nguoi_dung.findFirst({
+    where: (nguoi_dung, { eq }) =>
+      eq(nguoi_dung.email, user.emailAddresses?.[0]?.emailAddress),
+  })
+    if (!existingUser)
+      return NextResponse.json({ error: "Không tìm thấy người dùng trong DB" }, { status: 404 })
+
+    const authToken = jwt.sign({
+      userId: user.id,
+      ma_nguoi_dung: existingUser.ma_nguoi_dung
+    }, JWT_SECRET, { expiresIn: "7d" })
+
+    const response = NextResponse.json({
       message: "Đăng ký thành công!",
       userId: user.id,
       timestamp: new Date().toISOString(),
     });
+    response.cookies.set("token", authToken, {
+      httpOnly: true, 
+      secure: process.env.NODE_ENV === "production", 
+      sameSite: "strict",
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60, 
+    });
+    return response;
   } catch (err: any) {
     console.error("❌ Lỗi verify:", err);
     if (err.name === "TokenExpiredError") {

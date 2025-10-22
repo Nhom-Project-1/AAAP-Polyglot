@@ -10,21 +10,40 @@ type Lang = {
   code: string
 }
 
-export default function UserProgress() {
+ export default function UserProgress() {
   const router = useRouter()
   const [lang, setLang] = useState<Lang | null>(null)
   const score = 36
   const streak = 36
 
   useEffect(() => {
-    const savedLang = localStorage.getItem("selectedLang")
-    if (savedLang) {
+    const fetchLang = async () => {
       try {
-        setLang(JSON.parse(savedLang))
-      } catch {
-        console.error("Không có ngôn ngữ được lưu")
+        const res = await fetch("/api/user-language", {
+          method: "GET",
+          credentials: "include",
+        })
+
+        if (!res.ok) {
+          console.error("Không lấy được ngôn ngữ người dùng")
+          return
+        }
+
+        const data = await res.json()
+
+        if (data.current) {
+          setLang({
+            id: data.current.id,
+            label: data.current.name,
+            code: data.current.description, 
+          })
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy ngôn ngữ:", error)
       }
     }
+
+    fetchLang()
   }, [])
 
   if (!lang) return null

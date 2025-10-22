@@ -2,8 +2,6 @@ import {
   pgTable, serial, integer, varchar, text, timestamp, boolean, date,
   uniqueIndex
 } from "drizzle-orm/pg-core";
-import { on } from "events";
-
 
 export const nguoi_dung = pgTable(
   "nguoi_dung",

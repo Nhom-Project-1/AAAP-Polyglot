@@ -38,10 +38,10 @@ export async function POST(req: NextRequest) {
     if (!/[0-9]/.test(password)) {
       return NextResponse.json({ error: "Mật khẩu cần ít nhất 1 chữ số." }, { status: 400 });
     }
-    if (!/[!@#$%^&*(),.?\":{}|<>]/.test(password)) {
-      return NextResponse.json({ error: "Mật khẩu cần ít nhất 1 ký tự đặc biệt." }, { status: 400 });
+    const specialChars = password.match(/[!@#$%^&*(),.?":{}|<>]/g)
+    if (!specialChars || specialChars.length < 2) {
+      return NextResponse.json({ error: "Mật khẩu cần ít nhất 2 ký tự đặc biệt." }, { status: 400 })
     }
-
     const existing = await db.query.nguoi_dung.findFirst({
       where: (nguoi_dung, { eq, or }) =>
         or(eq(nguoi_dung.email, email), eq(nguoi_dung.ten_dang_nhap, username)),

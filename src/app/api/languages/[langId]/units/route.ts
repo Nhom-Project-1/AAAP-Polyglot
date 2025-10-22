@@ -49,9 +49,12 @@ export async function GET(req: NextRequest, ctx: { params: Promise<Params> }) {
     }
 
     const result = units.map(u => ({
-      ...u,
+      ma_don_vi: u.ma_don_vi,
+      ten_don_vi: u.ten_don_vi,
+      mo_ta: u.mo_ta,            
+      ma_ngon_ngu: u.ma_ngon_ngu,
       bai_hoc: lessonsByUnit.get(u.ma_don_vi as number) ?? [],
-    }));
+    }))
 
     return NextResponse.json({ data: result });
   } catch (e) {

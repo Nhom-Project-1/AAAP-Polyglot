@@ -1,25 +1,12 @@
 "use client"
 
-import { Suspense, useEffect } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 import Layout from "@/components/layout"
 import UserProgress from "@/components/user-progress"
 import UnitLesson from "@/components/unit-lesson"
 import Loading from "@/components/loading"
 
 function CoursePageContent() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const languageId = searchParams.get("lang")
-
-  useEffect(() => {
-    if (!languageId) {
-      router.push("/course/choose")
-    }
-  }, [languageId, router])
-
-  if (!languageId) return <Loading />
-
   return (
     <>
       <div className="absolute top-4 right-6">
