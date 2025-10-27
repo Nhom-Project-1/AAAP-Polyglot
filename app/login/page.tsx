@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { useRouter } from "next/navigation" 
-import Loading from "@/components/loading"
+import Loading from "@/components/ui/loading"
 
 export default function LoginPage() {
   const router = useRouter()

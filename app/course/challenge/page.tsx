@@ -1,5 +1,16 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import ChallengeLayout from "./challenge-layout";
+
 export default function ChallengePage() {
+  const router = useRouter();
+
+  const handleExit = () => {
+    router.back(); 
+  };
+
   return (
-        <div className="text-pink-500 2xl">Đây là trang challenge</div> 
-  )
+    <ChallengeLayout onExit={handleExit} />
+  );
 }

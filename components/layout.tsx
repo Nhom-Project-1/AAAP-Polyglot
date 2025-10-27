@@ -1,5 +1,5 @@
 import { Header } from "./header"
-import { Footer } from "./footer"
+import { Footer } from "./ui/footer"
 import {useRouter} from "next/navigation"
 
 export default function Layout({ children }: { children: React.ReactNode }) {

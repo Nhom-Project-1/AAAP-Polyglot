@@ -2,8 +2,8 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { useRouter,useSearchParams } from "next/navigation"
-import Crying from "@/components/crying"
-import Loading from "@/components/loading"
+import Crying from "@/components/ui/crying"
+import Loading from "@/components/ui/loading"
 
 type Unit = {
   id: number
@@ -149,7 +149,6 @@ return (
               <h2 className="text-lg font-bold">{unit.description}</h2>
             </div>
 
-            {/* danh sách bài học */}
             <div className="relative w-full flex flex-col items-center space-y-28">
               {unitLessons.map((lesson, index) => {
                 const waveOffset = Math.sin(index * 1.1) * 120 * direction

@@ -21,7 +21,7 @@ export const Header = ({ onLogout }: HeaderProps) => {
   const pathname = usePathname()
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const handleMenuClick = (href: string) => {
-    if (href === "/course" || href === "/ranking" || href === "/goal") {
+    if (href === "/course") {
       const saved = localStorage.getItem("selectedLang")
       if (!saved) {
         router.push("/course/choose")   

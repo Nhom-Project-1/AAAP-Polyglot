@@ -6,7 +6,7 @@ import { useMemo } from "react"
 import { ArrowLeft, Volume2 } from "lucide-react"
 import Layout from "@/components/layout"
 import UserProgress from "@/components/user-progress"
-import Crying from "@/components/crying"
+import Crying from "@/components/ui/crying"
 
 type Unit = {
   id: number
@@ -231,7 +231,7 @@ if (!lesson || !unit)
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() =>  router.push("/course/challenge")}
+          onClick={() => router.push(`/course/challenge?id=${lesson.id}`)}
           className="bg-pink-400 text-white px-8 py-3 rounded-xl font-semibold shadow-md hover:bg-pink-500 transition cursor-pointer"
         >
           Bắt đầu làm bài

@@ -4,8 +4,8 @@ import Layout from "@/components/layout"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import UserProgress from "@/components/user-progress"
-import UnitLesson from "@/components/unit-lesson"
-import Loading from "@/components/loading"
+import UnitLesson from "@/app/course/unit-lesson"
+import Loading from "@/components/ui/loading"
 
 export default function CoursePage() {
   const router = useRouter()

@@ -5,7 +5,7 @@ import { Lightbulb, Target, MessageCircle, ChevronRight, ChevronLeft } from "luc
 import { useKeenSlider } from "keen-slider/react"
 import "keen-slider/keen-slider.min.css"
 import ReactCountryFlag from "react-country-flag"
-import ScrollReveal from "@/components/scroll-reveal"
+import ScrollReveal from "@/app/(marketing)/scroll-reveal"
 
 function AutoplayPlugin(interval = 2000) {
   return (slider: any) => {

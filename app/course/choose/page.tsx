@@ -41,7 +41,7 @@ export default function ChooseLanguagePage() {
                 key={lang.id}
                 onClick={() =>
                   handleSelect(lang)}
-                className={`relative w-40 h-40 flex flex-col items-center justify-center rounded-2xl shadow transition hover:-translate-y-1 focus:outline-none bg-white ${
+                className={`cursor-pointer relative w-40 h-40 flex flex-col items-center justify-center rounded-2xl shadow transition hover:-translate-y-1 focus:outline-none bg-white ${
                   isActive ? "ring-2 ring-pink-400" : ""
                 }`} >
                 <span

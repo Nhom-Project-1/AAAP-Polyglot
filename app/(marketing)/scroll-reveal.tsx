@@ -16,10 +16,10 @@ export default function ScrollReveal({ children, className = "" }: ScrollRevealP
       ([entry]) => {
         if (entry.isIntersecting) {
           setVisible(true)
-          observer.disconnect() // chỉ reveal 1 lần
+          observer.disconnect() 
         }
       },
-      { threshold: 0.2 } // 20% xuất hiện là trigger
+      { threshold: 0.2 } 
     )
     if (ref.current) observer.observe(ref.current)
     return () => observer.disconnect()
