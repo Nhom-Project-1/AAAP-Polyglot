@@ -2,8 +2,6 @@ import {
   pgTable, serial, integer, varchar, text, timestamp, boolean, date,
   uniqueIndex
 } from "drizzle-orm/pg-core";
-import { on } from "events";
-
 
 export const nguoi_dung = pgTable(
   "nguoi_dung",
@@ -14,6 +12,9 @@ export const nguoi_dung = pgTable(
     mat_khau_hash: text("mat_khau_hash").notNull(),
     ngay_tao: timestamp("ngay_tao", { withTimezone: false }).defaultNow(),
     ngay_cap_nhat: timestamp("ngay_cap_nhat", { withTimezone: false }).defaultNow(),
+    chuoi: integer("chuoi_ngay").default(0).notNull(),
+    lan_cuoi_hoc: date("lan_cuoi_hoc"),
+    clerk_id: varchar("clerk_id", { length: 255 }),
   },
   (t) => ({
     uqUserName: uniqueIndex("uq_nguoi_dung_ten_dang_nhap").on(t.ten_dang_nhap),
@@ -78,6 +79,7 @@ export const tu_vung = pgTable("tu_vung", {
   phien_am: varchar("phien_am", { length: 100 }),
   nghia: varchar("nghia", { length: 255 }),
   lien_ket_am_thanh: text("lien_ket_am_thanh"),
+  vi_du: text("vi_du"),
 });
 
 
@@ -104,6 +106,7 @@ export const tien_do = pgTable("tien_do", {
   ma_bai_hoc: integer("ma_bai_hoc")
     .references(() => bai_hoc.ma_bai_hoc, { onDelete: "cascade" }),
   diem_kinh_nghiem: integer("diem_kinh_nghiem").default(0).notNull(),
+  so_tim_con_lai: integer("so_tim_con_lai").default(5).notNull(),
   trang_thai: varchar("trang_thai", { length: 50 }),
 });
 
