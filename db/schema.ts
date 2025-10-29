@@ -7,11 +7,14 @@ export const nguoi_dung = pgTable(
   "nguoi_dung",
   {
     ma_nguoi_dung: serial("ma_nguoi_dung").primaryKey(),
+    clerk_id: varchar("clerk_id", { length: 255 }).notNull(),
     ten_dang_nhap: varchar("ten_dang_nhap", { length: 100 }).notNull(),
     email: varchar("email", { length: 150 }).notNull(),
     mat_khau_hash: text("mat_khau_hash").notNull(),
     ngay_tao: timestamp("ngay_tao", { withTimezone: false }).defaultNow(),
     ngay_cap_nhat: timestamp("ngay_cap_nhat", { withTimezone: false }).defaultNow(),
+    chuoi: integer("chuoi_ngay").default(0).notNull(),
+    lan_cuoi_hoc: date("lan_cuoi_hoc"),
   },
   (t) => ({
     uqUserName: uniqueIndex("uq_nguoi_dung_ten_dang_nhap").on(t.ten_dang_nhap),
@@ -102,6 +105,7 @@ export const tien_do = pgTable("tien_do", {
   ma_bai_hoc: integer("ma_bai_hoc")
     .references(() => bai_hoc.ma_bai_hoc, { onDelete: "cascade" }),
   diem_kinh_nghiem: integer("diem_kinh_nghiem").default(0).notNull(),
+  so_tim_con_lai: integer("so_tim_con_lai").default(5).notNull(),
   trang_thai: varchar("trang_thai", { length: 50 }),
 });
 

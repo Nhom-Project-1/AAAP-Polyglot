@@ -52,7 +52,7 @@ export const Header = ({ onLogout }: HeaderProps) => {
             {menuItems.map((item) => {
               const isAccount = item.href === '/account'
               const isCourse = item.href === '/course'
-              const disabled = !hasChosenLanguage && !isAccount && !isCourse
+              const disabled = !hasChosenLanguage && isCourse
               const isActive = pathname.startsWith(item.href)
 
               return (
