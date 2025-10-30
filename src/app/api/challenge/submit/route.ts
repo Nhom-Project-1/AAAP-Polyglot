@@ -19,33 +19,31 @@ export async function POST(req: Request) {
     const dapAn = await db.query.lua_chon_thu_thach.findFirst({
       where: and(
         eq(lua_chon_thu_thach.ma_lua_chon, ma_lua_chon),
-        eq(lua_chon_thu_thach.ma_thu_thach, ma_thu_thach) 
+        eq(lua_chon_thu_thach.ma_thu_thach, ma_thu_thach)
       ),
       columns: { dung: true },
     });
-    if (!dapAn) return NextResponse.json({ error: "Không tìm thấy lựa chọn" }, { status: 404 });
+    if (!dapAn)
+      return NextResponse.json({ error: "Không tìm thấy lựa chọn" }, { status: 404 });
 
     let progress = await db.query.tien_do.findFirst({
-      where: and(eq(tien_do.ma_nguoi_dung, ma_nguoi_dung), eq(tien_do.ma_bai_hoc, ma_bai_hoc)),
-      columns: { ma_tien_do: true, diem_kinh_nghiem: true, so_tim_con_lai: true, trang_thai: true },
+      where: and(
+        eq(tien_do.ma_nguoi_dung, ma_nguoi_dung),
+        eq(tien_do.ma_bai_hoc, ma_bai_hoc)
+      ),
+      columns: {
+        ma_tien_do: true,
+        diem_kinh_nghiem: true,
+        so_tim_con_lai: true,
+        trang_thai: true,
+      },
     });
+
     if (!progress) {
-      const inserted = await db
-        .insert(tien_do)
-        .values({
-          ma_nguoi_dung,
-          ma_bai_hoc,
-          diem_kinh_nghiem: 0,
-          so_tim_con_lai: 5,
-          trang_thai: "dang_hoc",
-        })
-        .returning({
-          ma_tien_do: tien_do.ma_tien_do,
-          diem_kinh_nghiem: tien_do.diem_kinh_nghiem,
-          so_tim_con_lai: tien_do.so_tim_con_lai,
-          trang_thai: tien_do.trang_thai,
-        });
-      progress = inserted[0];
+      return NextResponse.json(
+        { error: "Người dùng chưa có tiến độ học cho bài này." },
+        { status: 403 }
+      );
     }
 
     const totalChallenges = await db
@@ -55,9 +53,16 @@ export async function POST(req: Request) {
     const total = totalChallenges[0]?.total ?? 0;
 
     const maxLanLamRow = await db
-      .select({ max_lan: sql<number>`COALESCE(MAX(${cau_tra_loi_nguoi_dung.lan_lam}), 0)` })
+      .select({
+        max_lan: sql<number>`COALESCE(MAX(${cau_tra_loi_nguoi_dung.lan_lam}), 0)`,
+      })
       .from(cau_tra_loi_nguoi_dung)
-      .where(and(eq(cau_tra_loi_nguoi_dung.ma_bai_hoc, ma_bai_hoc), eq(cau_tra_loi_nguoi_dung.ma_nguoi_dung, ma_nguoi_dung)));
+      .where(
+        and(
+          eq(cau_tra_loi_nguoi_dung.ma_bai_hoc, ma_bai_hoc),
+          eq(cau_tra_loi_nguoi_dung.ma_nguoi_dung, ma_nguoi_dung)
+        )
+      );
     const maxLan = maxLanLamRow[0]?.max_lan ?? 0;
 
     let lan_lam_hien_tai = maxLan === 0 ? 1 : maxLan;
@@ -77,7 +82,7 @@ export async function POST(req: Request) {
       daLamTrongLanMax = daLamCountMax[0]?.da_lam ?? 0;
     }
 
-    if ((maxLan > 0 && daLamTrongLanMax >= total) || (progress.trang_thai === "that_bai" && progress.so_tim_con_lai === 5)) {
+    if (maxLan > 0 && daLamTrongLanMax >= total) {
       lan_lam_hien_tai = (maxLan || 1) + 1;
     }
 
@@ -94,17 +99,60 @@ export async function POST(req: Request) {
     if (daLamCauNay?.dung === true) {
       return NextResponse.json({
         correct: true,
-        message: "✅ Bạn đã trả lời đúng câu này trước đó, không tính thêm điểm.",
+        message: "Bạn đã trả lời đúng câu này trước đó, không tính thêm điểm.",
         lan_lam: lan_lam_hien_tai,
       });
     }
 
     if (daLamCauNay) {
+      if (daLamCauNay.dung) {
+        return NextResponse.json({
+          correct: true,
+          message: "Bạn đã trả lời đúng câu này trước đó, không tính thêm điểm.",
+          lan_lam: lan_lam_hien_tai,
+        });
+      }
+
+      if (!dapAn.dung) {
+        const newHeart = Math.max(progress.so_tim_con_lai - 1, 0);
+
+        if (newHeart === 0) {
+          await db
+            .update(tien_do)
+            .set({ so_tim_con_lai: 5, trang_thai: "that_bai" })
+            .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
+
+          return NextResponse.json({
+            correct: false,
+            message: `Hết tim! Bắt đầu lượt mới với 5 tim.`,
+            lan_lam_moi: (maxLan || 1) + 1,
+            so_tim_con_lai: 5,
+            trang_thai: "that_bai",
+            reset: true,
+          });
+        }
+
+        await db
+          .update(tien_do)
+          .set({ so_tim_con_lai: newHeart, trang_thai: "dang_hoc" })
+          .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
+
+        return NextResponse.json({
+          correct: false,
+          message: "Sai mất rồi. Bạn bị -1 tim.",
+          so_tim_con_lai: newHeart,
+          lan_lam: lan_lam_hien_tai,
+        });
+      }
+
+      await db
+        .update(cau_tra_loi_nguoi_dung)
+        .set({ dung: true, ma_lua_chon })
+        .where(eq(cau_tra_loi_nguoi_dung.id, daLamCauNay.id));
+
       return NextResponse.json({
-        correct: dapAn.dung,
-        message: daLamCauNay.dung
-          ? "✅ Bạn đã đúng câu này trước đó, không tính lại XP."
-          : "❌ Bạn đã trả lời sai câu này trước đó, không tính XP khi nộp lại.",
+        correct: true,
+        message: "Bạn đã sửa lại và trả lời đúng!",
         lan_lam: lan_lam_hien_tai,
       });
     }
@@ -147,7 +195,9 @@ export async function POST(req: Request) {
       const newXP = soCauDung * 10;
 
       const maxXPQuery = await db
-        .select({ max_xp: sql<number>`MAX(sub.so_dung * 10)`.mapWith(Number) })
+        .select({
+          max_xp: sql<number>`MAX(sub.so_dung * 10)`.mapWith(Number),
+        })
         .from(
           db
             .select({
@@ -170,26 +220,37 @@ export async function POST(req: Request) {
 
       await db
         .update(tien_do)
-        .set({ diem_kinh_nghiem: maxXP, trang_thai: "hoan_thanh", so_tim_con_lai: 5 })
+        .set({
+          diem_kinh_nghiem: maxXP,
+          trang_thai: "hoan_thanh",
+          so_tim_con_lai: 5,
+        })
         .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
 
       const percent = total > 0 ? ((soCauDung / total) * 100).toFixed(0) : "0";
 
       return NextResponse.json({
         correct: dapAn.dung,
-        message: ` Hoàn thành lượt ${lan_lam_hien_tai}! Bạn đúng ${soCauDung}/${total} câu (${percent}%) bạn được +${newXP} XP. ❤️ Tim đã reset.`,
+        message: `Hoàn thành lượt ${lan_lam_hien_tai}! Đúng ${soCauDung}/${total} câu (${percent}%) → +${newXP} XP.`,
         lan_lam: lan_lam_hien_tai,
         hoan_thanh: true,
         diem_moi: maxXP,
         so_tim_con_lai: 5,
-        lan_tiep_theo: lan_lam_hien_tai + 1, 
+        lan_tiep_theo: lan_lam_hien_tai + 1,
       });
     }
 
     if (dapAn.dung) {
+      if (progress.trang_thai === "that_bai") {
+        await db
+          .update(tien_do)
+          .set({ trang_thai: "dang_hoc" })
+          .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
+      }
+
       return NextResponse.json({
         correct: true,
-        message: ` Chính xác! Bạn đã làm ${soDaLamHienTai}/${total}.`,
+        message: `Chính xác! Bạn đã làm ${soDaLamHienTai}/${total}.`,
         lan_lam: lan_lam_hien_tai,
       });
     }
@@ -203,9 +264,10 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         correct: false,
-        message: `Hết tim! Bắt đầu lượt mới với 5 tim.`,
-        lan_lam_moi: (maxLan || 1) + 1, 
+        message: `💔 Hết tim! Bắt đầu lượt mới với 5 tim.`,
+        lan_lam_moi: (maxLan || 1) + 1,
         so_tim_con_lai: 5,
+        trang_thai: "that_bai",
         reset: true,
       });
     }
@@ -217,12 +279,12 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       correct: false,
-      message: "Sai mất rồi. Bạn bị -1 tim.",
+      message: "❌ Sai mất rồi. Bạn bị -1 tim.",
       so_tim_con_lai: newHeart,
       lan_lam: lan_lam_hien_tai,
     });
   } catch (error) {
-    console.error("Lỗi khi xử lý câu trả lời:", error);
+    console.error("❌ Lỗi khi xử lý câu trả lời:", error);
     return NextResponse.json({ error: "Lỗi khi xử lý câu trả lời" }, { status: 500 });
   }
 }
