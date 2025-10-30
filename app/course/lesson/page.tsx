@@ -4,9 +4,11 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { useMemo } from "react"
 import { ArrowLeft, Volume2 } from "lucide-react"
+import toast, {Toaster} from "react-hot-toast"
 import Layout from "@/components/layout"
 import UserProgress from "@/components/user-progress"
 import Crying from "@/components/ui/crying"
+import { mockChallenge } from "@/app/course/challenge/quiz"
 
 type Unit = {
   id: number
@@ -203,40 +205,56 @@ if (!lesson || !unit)
         <p className="text-3xl font-semibold">Danh sách từ vựng</p>
       </div>
       
-     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-  {lessonVocabs.length > 0 ? (
-    lessonVocabs.map((v) => (
-      <div key={v.ma_tu} className="border rounded-xl p-4 shadow-md flex items-center justify-between">
-        <div>
-          <h3 className="text-xl font-bold">{v.tu} <span className="text-gray-500">{v.phien_am}</span></h3>
-          <p className="text-gray-700 mb-2">{v.nghia}</p>
-          <p className="italic text-gray-500">{v.vi_du}</p>
-        </div>
-        <button
-          onClick={() => playAudio(v.lien_ket_am_thanh)}
-          className="ml-4 text-pink-500 hover:text-pink-600 cursor-pointer"
-        >
-          <Volume2 size={24} />
-        </button>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+      {lessonVocabs.length > 0 ? (
+        lessonVocabs.map((v) => (
+          <div key={v.ma_tu} className="border rounded-xl p-4 shadow-md flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-bold">{v.tu} <span className="text-gray-500">{v.phien_am}</span></h3>
+              <p className="text-gray-700 mb-2">{v.nghia}</p>
+              <p className="italic text-gray-500">{v.vi_du}</p>
+            </div>
+            <button
+              onClick={() => playAudio(v.lien_ket_am_thanh)}
+              className="ml-4 text-pink-500 hover:text-pink-600 cursor-pointer"
+            >
+              <Volume2 size={24} />
+            </button>
+          </div>
+        ))
+        ) : (
+          <p className="col-span-full text-gray-500 text-center italic">
+            Hiện tại chưa có từ vựng cho bài này
+          </p>
+        )}
       </div>
-    ))
-  ) : (
-    <p className="col-span-full text-gray-500 text-center italic">
-      Hiện tại chưa có từ vựng cho bài này
-    </p>
-  )}
-</div>
-
-       <div className="flex justify-center mt-12 mb-6">
+      <div className="flex flex-col items-center mt-12 mb-6">
         <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => router.push(`/course/challenge?id=${lesson.id}`)}
-          className="bg-pink-400 text-white px-8 py-3 rounded-xl font-semibold shadow-md hover:bg-pink-500 transition cursor-pointer"
-        >
-          Bắt đầu làm bài
-        </motion.button>
-      </div>
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => {
+          const challenge = mockChallenge.find(c => c.ma_bai_hoc === lesson.id)
+          if (challenge) {
+            router.push(`/course/challenge?lessonId=${lesson.id}&challengeId=${challenge.ma_thu_thach}`)
+          } else {
+            toast.error("Hiện tại chưa có thử thách cho bài này!", {
+              style: {
+                border: '1px',
+                padding: '12px 16px',
+                color: '#b91c1c',
+              },
+              iconTheme: {
+                primary: '#f472b6',
+                secondary: '#fff',
+              },
+            })
+          }
+        }}
+        className="bg-pink-400 text-white px-8 py-3 rounded-xl font-semibold shadow-md hover:bg-pink-500 transition cursor-pointer"
+      >
+        Bắt đầu làm bài
+      </motion.button>
+    </div>
     </main>
   </Layout>
 )

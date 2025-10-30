@@ -69,5 +69,6 @@ npm install react-confetti
 11. challenge: Trang challenge
 - congrat: Chúc mừng sau khi người dùng hoàn thành 1 bài học
 - quiz: Nội dung của các câu hỏi và các đáp án
-- challenge-layout: Layout của trang Challenge
- 
+- challenge-header: Chứa thanh progress, số tim và nút thoát
+- challengefooter: chứa nút kiểm tra, hiện đáp án, biến mất thay = nút "Tiếp tục" sau khi hiện đáp án
+- exit-modal: Hiện lên khi ấn nút thoát
