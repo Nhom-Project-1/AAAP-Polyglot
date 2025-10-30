@@ -117,15 +117,26 @@ export async function POST(req: Request) {
         const newHeart = Math.max(progress.so_tim_con_lai - 1, 0);
 
         if (newHeart === 0) {
+          const lanLamMoi = (maxLan || 1) + 1;
+
           await db
             .update(tien_do)
             .set({ so_tim_con_lai: 5, trang_thai: "that_bai" })
             .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
 
+          await db.insert(cau_tra_loi_nguoi_dung).values({
+            ma_nguoi_dung,
+            ma_bai_hoc,
+            ma_thu_thach,
+            ma_lua_chon,
+            dung: false,
+            lan_lam: lanLamMoi,
+          });
+
           return NextResponse.json({
             correct: false,
             message: `Hết tim! Bắt đầu lượt mới với 5 tim.`,
-            lan_lam_moi: (maxLan || 1) + 1,
+            lan_lam_moi: lanLamMoi,
             so_tim_con_lai: 5,
             trang_thai: "that_bai",
             reset: true,
@@ -139,7 +150,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
           correct: false,
-          message: "Sai mất rồi. Bạn bị -1 tim.",
+          message: "❌ Sai mất rồi. Bạn bị -1 tim.",
           so_tim_con_lai: newHeart,
           lan_lam: lan_lam_hien_tai,
         });
@@ -152,7 +163,7 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         correct: true,
-        message: "Bạn đã sửa lại và trả lời đúng!",
+        message: "✅ Bạn đã sửa lại và trả lời đúng!",
         lan_lam: lan_lam_hien_tai,
       });
     }
@@ -193,6 +204,7 @@ export async function POST(req: Request) {
 
     if (soDaLamHienTai >= total) {
       const newXP = soCauDung * 10;
+      const isSuccess = soCauDung > 0; 
 
       const maxXPQuery = await db
         .select({
@@ -221,8 +233,8 @@ export async function POST(req: Request) {
       await db
         .update(tien_do)
         .set({
-          diem_kinh_nghiem: maxXP,
-          trang_thai: "hoan_thanh",
+          diem_kinh_nghiem: isSuccess ? maxXP : progress.diem_kinh_nghiem, 
+          trang_thai: isSuccess ? "hoan_thanh" : "that_bai", 
           so_tim_con_lai: 5,
         })
         .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
@@ -231,10 +243,12 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         correct: dapAn.dung,
-        message: `Hoàn thành lượt ${lan_lam_hien_tai}! Đúng ${soCauDung}/${total} câu (${percent}%) → +${newXP} XP.`,
+        message: isSuccess
+          ? `Hoàn thành lượt ${lan_lam_hien_tai}! Đúng ${soCauDung}/${total} câu (${percent}%) → +${newXP} XP.`
+          : `Bạn sai hết ${total} câu → thất bại, không được XP.`,
         lan_lam: lan_lam_hien_tai,
-        hoan_thanh: true,
-        diem_moi: maxXP,
+        hoan_thanh: isSuccess,
+        diem_moi: isSuccess ? maxXP : progress.diem_kinh_nghiem,
         so_tim_con_lai: 5,
         lan_tiep_theo: lan_lam_hien_tai + 1,
       });
@@ -257,15 +271,26 @@ export async function POST(req: Request) {
 
     const newHeart = Math.max(progress.so_tim_con_lai - 1, 0);
     if (newHeart === 0) {
+      const lanLamMoi = (maxLan || 1) + 1;
+
       await db
         .update(tien_do)
         .set({ so_tim_con_lai: 5, trang_thai: "that_bai" })
         .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
 
+      await db.insert(cau_tra_loi_nguoi_dung).values({
+        ma_nguoi_dung,
+        ma_bai_hoc,
+        ma_thu_thach,
+        ma_lua_chon,
+        dung: false,
+        lan_lam: lanLamMoi,
+      });
+
       return NextResponse.json({
         correct: false,
-        message: `💔 Hết tim! Bắt đầu lượt mới với 5 tim.`,
-        lan_lam_moi: (maxLan || 1) + 1,
+        message: `Hết tim! Bắt đầu lượt mới với 5 tim.`,
+        lan_lam_moi: lanLamMoi,
         so_tim_con_lai: 5,
         trang_thai: "that_bai",
         reset: true,
@@ -279,12 +304,12 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       correct: false,
-      message: "❌ Sai mất rồi. Bạn bị -1 tim.",
+      message: "Sai mất rồi. Bạn bị -1 tim.",
       so_tim_con_lai: newHeart,
       lan_lam: lan_lam_hien_tai,
     });
   } catch (error) {
-    console.error("❌ Lỗi khi xử lý câu trả lời:", error);
+    console.error("Lỗi khi xử lý câu trả lời:", error);
     return NextResponse.json({ error: "Lỗi khi xử lý câu trả lời" }, { status: 500 });
   }
 }
