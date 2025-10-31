@@ -52,6 +52,16 @@ export default function ChallengePage() {
     }
   };
 
+  const resetChallenge = () => {
+    setCurrent(0)
+    setProgress(0)
+    setHearts(5)
+    setSelectedChoice(null)
+    setShowResult(false)
+    setIsCorrect(null)
+    setChecked(false)
+    setShowCongrat(false)
+  }
 
    return (
     <div className="flex flex-col min-h-screen bg-white text-gray-900 relative">
@@ -92,6 +102,7 @@ export default function ChallengePage() {
             router.push(`/course?lang=${langId}`);
           }
         }}
+        onRestart={resetChallenge}
       />
     </div>
   );

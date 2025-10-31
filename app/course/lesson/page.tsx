@@ -43,7 +43,7 @@ export const mockVocabs: Vocab[] = [
     tu: "apple",
     nghia: "quả táo",
     phien_am: "/ˈæp.əl/",
-    lien_ket_am_thanh: "/apple.mp3", 
+    lien_ket_am_thanh: "apple.mp3", 
     vi_du: "I like eating an apple every day."
   },
   {
@@ -52,7 +52,7 @@ export const mockVocabs: Vocab[] = [
     tu: "book",
     nghia: "cuốn sách",
     phien_am: "/bʊk/",
-    lien_ket_am_thanh: "/book.mp3",
+    lien_ket_am_thanh: "book.mp3",
     vi_du: "This book is very interesting."
   },
   {
@@ -61,7 +61,7 @@ export const mockVocabs: Vocab[] = [
     tu: "cat",
     nghia: "con mèo",
     phien_am: "/kæt/",
-    lien_ket_am_thanh: "/cat.mp3",
+    lien_ket_am_thanh: "cat.mp3",
     vi_du: "The cat is sleeping on the sofa."
   },
 ]
@@ -69,10 +69,11 @@ export const mockVocabs: Vocab[] = [
 export default function LessonPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const playAudio = (src: string) => {
-  const audio = new Audio(src)
-  audio.play()
-}
+  const BASE_URL = "https://jqjypyxevffgazmgazsu.supabase.co/storage/v1/object/public/Audio/"
+  const playAudio = (fileName: string) => {
+    const audio = new Audio(`${BASE_URL}${fileName}`)
+    audio.play()
+  }
   const lessonId = Number(searchParams.get("id"))
   const unitId = Number(searchParams.get("unit"))
   
