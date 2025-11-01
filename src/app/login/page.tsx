@@ -4,9 +4,12 @@ import { Button } from "@/components/ui/button"
 import { useState } from "react"
 import { useRouter } from "next/navigation" 
 import Loading from "@/components/loading"
+import { useSignIn } from "@clerk/nextjs"
 
 export default function LoginPage() {
   const router = useRouter()
+  const { isLoaded, signIn, setActive } = useSignIn() 
+
   const [identifier, setIdentifier] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -14,39 +17,56 @@ export default function LoginPage() {
   const [error, setError] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault()
-  setError("")
-  setIsLoading(true)
-  try {
-    const res = await fetch("/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier, password }),
-    })
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier, password }),
+      });
 
-    const data = await res.json()
+      const data = await res.json();
 
-    if (!res.ok) {
-      setError(data.error || "Có lỗi xảy ra")
-      setIsLoading(false)
-      return
+      if (!res.ok) {
+        setError(data.error || "Có lỗi xảy ra");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!isLoaded) return;
+
+      const signInAttempt = await signIn.create({
+        identifier,
+        password,
+      });
+
+      if (signInAttempt.status === "complete") {
+        await setActive({ session: signInAttempt.createdSessionId });
+
+        await new Promise((r) => setTimeout(r, 300));
+      } else {
+        setError("Đăng nhập Clerk chưa hoàn tất hoặc sai mật khẩu");
+        setIsLoading(false);
+        return;
+      }
+
+      const langRes = await fetch("/api/user-language", { credentials: "include" });
+      const langData = await langRes.json();
+
+      if (langData.current) {
+        router.push(`/course?lang=${langData.current.id}`);
+      } else {
+        router.push("/course/choose");
+      }
+
+    } catch (err) {
+      console.error(err);
+      setError("Có lỗi xảy ra. Vui lòng thử lại");
+      setIsLoading(false);
     }
-
-    const langRes = await fetch("/api/user-language")
-    const langData = await langRes.json()
-
-    if (langData.current) {
-       router.push(`/course?lang=${langData.current.id}`)        
-    } else {
-      router.push("/course/choose")  
-    }
-
-  } catch (err) {
-    console.error(err)
-    setError("Có lỗi xảy ra. Vui lòng thử lại")
-    setIsLoading(false)
-  }
-}
+  };
 
   if (isLoading) return <Loading/>
 
@@ -58,7 +78,6 @@ export default function LoginPage() {
         </h1>
         <form onSubmit={handleSubmit} className="space-y-4">
 
-          {/*Username hoặc email*/}
           <div>
             <label className="block text-sm font-medium mb-1 text-black-500">
               Tên đăng nhập hoặc email
@@ -71,7 +90,6 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* Mật khẩu */}
           <div>
             <label className="block text-sm font-medium mb-1 text-black-500">Mật khẩu</label>
             <div className="relative">
@@ -121,4 +139,4 @@ export default function LoginPage() {
       </div>
     </div>
   )
-}
+}  
