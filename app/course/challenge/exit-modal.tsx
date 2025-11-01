@@ -11,7 +11,7 @@ export default function ExitModal({ show, onClose, onConfirm }: ExitModalProps) 
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-white/30 backdrop-blur-sm z-50">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/20 z-50">
       <div className="bg-white p-10 rounded-xl shadow-xl w-96">
         <p className="mb-6 text-center text-lg font-medium">
           Bạn chắc chắn muốn thoát?

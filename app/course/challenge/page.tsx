@@ -8,6 +8,7 @@ import Quiz from "./quiz";
 import { mockChallenge } from "./quiz";
 import CongratModal from "./congrat";
 import ExitModal from "./exit-modal";
+import FailModal from "./fail";
 
 export default function ChallengePage() {
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function ChallengePage() {
   const [current, setCurrent] = useState(0);
   const [checked, setChecked] = useState(false); 
   const [showCongrat, setShowCongrat] = useState(false);
-
+  const [showFail, setShowFail] = useState(false)
   const currentQuestion = mockChallenge[current];
 
   const handleSelect = (id: number) => {
@@ -37,7 +38,17 @@ export default function ChallengePage() {
     setShowResult(true);
     setChecked(true);
     setProgress((p) => Math.min(p + 1 / mockChallenge.length, 1));
-    if (!correct) setHearts((h) => Math.max(h - 1, 0));
+    if (!correct) {
+      setHearts((h) => {
+        const newHearts = Math.max(h - 1, 0)
+        if (newHearts === 0) {
+          setTimeout(() => {
+            setShowFail(true)
+          }, 800) 
+        }
+        return newHearts
+      })
+    }
   };
 
   const handleContinue = () => {
@@ -103,6 +114,20 @@ export default function ChallengePage() {
           }
         }}
         onRestart={resetChallenge}
+      />
+      <FailModal
+        show={showFail}
+        onClose={() => {
+          const langData = localStorage.getItem("selectedLang")
+          if (langData) {
+            const langId = JSON.parse(langData).id
+            router.push(`/course?lang=${langId}`)
+          }
+        }}
+        onRestart={() => {
+          resetChallenge()
+          setShowFail(false)
+        }}
       />
     </div>
   );
