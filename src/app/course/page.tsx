@@ -1,10 +1,11 @@
-"use client"
+"use client";
 
-import { Suspense } from "react"
-import Layout from "@/components/layout"
-import UserProgress from "@/components/user-progress"
-import UnitLesson from "@/components/unit-lesson"
-import Loading from "@/components/loading"
+import { Suspense, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import Layout from "@/components/layout";
+import UserProgress from "@/components/user-progress";
+import UnitLesson from "@/components/unit-lesson";
+import Loading from "@/components/loading";
 
 function CoursePageContent() {
   return (
@@ -16,10 +17,30 @@ function CoursePageContent() {
         <UnitLesson />
       </h2>
     </>
-  )
+  );
 }
 
 export default function CoursePage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const lang = searchParams.get("lang"); 
+
+  useEffect(() => {
+    if (!lang) {
+      router.push("/course/choose");
+    }
+  }, [lang, router]);
+
+  if (!lang) {
+    return (
+      <Layout>
+        <main className="relative p-6 min-h-screen flex items-center justify-center">
+          <p className="text-pink-400 font-medium">Đang chuyển hướng...</p>
+        </main>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <main className="relative p-6 min-h-screen">
@@ -28,5 +49,5 @@ export default function CoursePage() {
         </Suspense>
       </main>
     </Layout>
-  )
+  );
 }
