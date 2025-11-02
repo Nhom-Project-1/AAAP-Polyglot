@@ -1,4 +1,5 @@
 "use client"
+
 import { useState, useEffect } from "react"
 import Layout from "@/components/layout"
 import ReactCountryFlag from "react-country-flag"
@@ -18,13 +19,14 @@ export default function ChooseLanguagePage() {
   const [selected, setSelected] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // 🔹 chỉ lấy danh sách ngôn ngữ (không tự động chọn ngôn ngữ đã lưu)
   useEffect(() => {
-    async function fetchLanguages() {
+    async function loadLanguages() {
       try {
-        const res = await fetch("/api/language")
-        if (!res.ok) throw new Error("Không thể lấy danh sách ngôn ngữ")
-        const data = await res.json()
-        setLanguages(Array.isArray(data) ? data : [])
+        const resLang = await fetch("/api/language")
+        if (!resLang.ok) throw new Error("Không thể lấy danh sách ngôn ngữ")
+        const langData = await resLang.json()
+        setLanguages(Array.isArray(langData) ? langData : [])
       } catch (err) {
         console.error(err)
         toast.error("Không thể tải danh sách ngôn ngữ")
@@ -34,28 +36,12 @@ export default function ChooseLanguagePage() {
       }
     }
 
-    async function checkUserLanguage() {
-      try {
-        const res = await fetch("/api/user-language", { cache: "no-store", credentials: "include" })
-        if (res.ok) {
-          const data = await res.json()
-          if (data.current && data.current.id) {
-            router.push(`/course?lang=${data.current.id}`)
-            return
-          }
-        }
-      } catch (err) {
-        console.warn("Không thể kiểm tra ngôn ngữ người dùng:", err)
-      }
-
-      fetchLanguages()
-    }
-
-    checkUserLanguage()
-  }, [router])
+    loadLanguages()
+  }, [])
 
   const handleSelect = async (lang: Language) => {
     setSelected(lang.ma_ngon_ngu)
+
     try {
       const res = await fetch("/api/user-language", {
         method: "POST",
@@ -69,9 +55,8 @@ export default function ChooseLanguagePage() {
       const result = await res.json()
       if (!res.ok) throw new Error(result.error || "Lưu ngôn ngữ thất bại")
 
-      const t = toast.success("Đã chọn " + lang.ten_ngon_ngu, { duration: 2000 })
+      toast.success(`Đã chọn ${lang.ten_ngon_ngu}`, { duration: 1500 })
       setTimeout(() => {
-        toast.dismiss(t)
         router.push(`/course?lang=${lang.ma_ngon_ngu}`)
       }, 1000)
     } catch (error) {
@@ -88,6 +73,7 @@ export default function ChooseLanguagePage() {
         <h1 className="text-2xl font-semibold mb-6 text-center text-pink-500">
           Chọn một ngôn ngữ bạn muốn học
         </h1>
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 justify-items-center">
           {languages.map((lang) => {
             const isActive = selected === lang.ma_ngon_ngu
@@ -117,6 +103,8 @@ export default function ChooseLanguagePage() {
                     />
                   </svg>
                 </span>
+
+                {/* cờ quốc gia */}
                 <ReactCountryFlag
                   countryCode={lang.mo_ta ?? "UN"}
                   svg
@@ -128,6 +116,7 @@ export default function ChooseLanguagePage() {
           })}
         </div>
       </div>
+
       <Toaster position="top-center" reverseOrder={false} />
     </Layout>
   )

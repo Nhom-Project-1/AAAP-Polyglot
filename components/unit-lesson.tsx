@@ -135,9 +135,8 @@ export default function UnitLesson() {
                       transition={{ type: "spring", stiffness: 300 }}
                       className="w-20 h-20 flex items-center justify-center rounded-full text-white shadow-lg cursor-pointer bg-pink-400 border-4 border-pink-200"
                       onClick={() =>
-                        router.push(
-                          `/course/lesson?id=${lesson.ma_bai_hoc}&unit=${unit.ma_don_vi}`
-                        )
+                        router.push(`/course/lesson?id=${lesson.ma_bai_hoc}&unit=${unit.ma_don_vi}&lang=${languageId}`)
+
                       }
                     >
                       <span className="text-lg font-bold">{lessonIndex}</span>
