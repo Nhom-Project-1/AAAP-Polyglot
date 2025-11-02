@@ -4,7 +4,7 @@ import Layout from "@/components/layout"
 import ReactCountryFlag from "react-country-flag"
 import toast, { Toaster } from "react-hot-toast"
 import { useRouter } from "next/navigation"
-import  Loading  from "@/components/loading"
+import Loading from "@/components/loading"
 
 type Language = {
   ma_ngon_ngu: number
@@ -29,19 +29,37 @@ export default function ChooseLanguagePage() {
         console.error(err)
         toast.error("Không thể tải danh sách ngôn ngữ")
         setLanguages([])
-      }
-        finally {
-        setLoading(false) 
+      } finally {
+        setLoading(false)
       }
     }
-    fetchLanguages()
-  }, [])
+
+    async function checkUserLanguage() {
+      try {
+        const res = await fetch("/api/user-language", { cache: "no-store", credentials: "include" })
+        if (res.ok) {
+          const data = await res.json()
+          if (data.current && data.current.id) {
+            router.push(`/course?lang=${data.current.id}`)
+            return
+          }
+        }
+      } catch (err) {
+        console.warn("Không thể kiểm tra ngôn ngữ người dùng:", err)
+      }
+
+      fetchLanguages()
+    }
+
+    checkUserLanguage()
+  }, [router])
+
   const handleSelect = async (lang: Language) => {
     setSelected(lang.ma_ngon_ngu)
     try {
       const res = await fetch("/api/user-language", {
         method: "POST",
-        credentials: "include", 
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           languageId: lang.ma_ngon_ngu,
@@ -61,8 +79,9 @@ export default function ChooseLanguagePage() {
       toast.error("Không thể lưu ngôn ngữ đã chọn")
     }
   }
- if (loading) return <Loading />
- 
+
+  if (loading) return <Loading />
+
   return (
     <Layout>
       <div className="max-w-4xl mx-auto p-6">
@@ -70,7 +89,7 @@ export default function ChooseLanguagePage() {
           Chọn một ngôn ngữ bạn muốn học
         </h1>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 justify-items-center">
-          { languages.map((lang) => {
+          {languages.map((lang) => {
             const isActive = selected === lang.ma_ngon_ngu
             return (
               <button
@@ -99,7 +118,7 @@ export default function ChooseLanguagePage() {
                   </svg>
                 </span>
                 <ReactCountryFlag
-                  countryCode={lang.mo_ta ?? "UN"} 
+                  countryCode={lang.mo_ta ?? "UN"}
                   svg
                   style={{ width: "3em", height: "3em", borderRadius: "4px" }}
                 />
