@@ -85,7 +85,6 @@ export default function ChooseLanguagePage() {
                   isActive ? "ring-2 ring-pink-400" : ""
                 }`}
               >
-                {/* dấu check góc phải */}
                 <span
                   className={`absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-full ${
                     isActive ? "bg-pink-500 text-white" : "bg-gray-200 text-gray-400"
