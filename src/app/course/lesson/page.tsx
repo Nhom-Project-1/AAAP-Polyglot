@@ -37,8 +37,6 @@ type Vocab = {
 export default function LessonPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-
-  // đọc query param từ URL: ?id=3&unit=1&lang=1
   const langId = searchParams.get("lang")
   const unitId = searchParams.get("unit")
   const lessonId = searchParams.get("id")
