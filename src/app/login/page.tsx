@@ -1,14 +1,15 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
-import { useRouter } from "next/navigation" 
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Loading from "@/components/loading"
-import { useSignIn } from "@clerk/nextjs"
+import { useSignIn, useUser } from "@clerk/nextjs"
 
 export default function LoginPage() {
   const router = useRouter()
-  const { isLoaded, signIn, setActive } = useSignIn() 
+  const { isLoaded, signIn, setActive } = useSignIn()
+  const { isSignedIn } = useUser() 
 
   const [identifier, setIdentifier] = useState("")
   const [password, setPassword] = useState("")
@@ -16,59 +17,69 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
+  useEffect(() => {
+    if (isSignedIn) {
+      router.push("/course") 
+    }
+  }, [isSignedIn, router])
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setIsLoading(true);
+    e.preventDefault()
+    setError("")
+    setIsLoading(true)
+
     try {
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier, password }),
-      });
+      })
 
-      const data = await res.json();
+      const data = await res.json()
 
       if (!res.ok) {
-        setError(data.error || "Có lỗi xảy ra");
-        setIsLoading(false);
-        return;
+        setError(data.error || "Có lỗi xảy ra")
+        setIsLoading(false)
+        return
       }
 
-      if (!isLoaded) return;
+      if (!isLoaded) return
+
+      if (isSignedIn) {
+        router.push("/course")
+        return
+      }
 
       const signInAttempt = await signIn.create({
         identifier,
         password,
-      });
+      })
 
       if (signInAttempt.status === "complete") {
-        await setActive({ session: signInAttempt.createdSessionId });
-
-        await new Promise((r) => setTimeout(r, 300));
+        await setActive({ session: signInAttempt.createdSessionId })
+        await new Promise((r) => setTimeout(r, 300))
       } else {
-        setError("Đăng nhập Clerk chưa hoàn tất hoặc sai mật khẩu");
-        setIsLoading(false);
-        return;
+        setError("Đăng nhập Clerk chưa hoàn tất hoặc sai mật khẩu")
+        setIsLoading(false)
+        return
       }
 
-      const langRes = await fetch("/api/user-language", { credentials: "include" });
-      const langData = await langRes.json();
+      const langRes = await fetch("/api/user-language", { credentials: "include" })
+      const langData = await langRes.json()
 
       if (langData.current) {
-        router.push(`/course?lang=${langData.current.id}`);
+        router.push(`/course?lang=${langData.current.id}`)
       } else {
-        router.push("/course/choose");
+        router.push("/course/choose")
       }
-
     } catch (err) {
-      console.error(err);
-      setError("Có lỗi xảy ra. Vui lòng thử lại");
-      setIsLoading(false);
+      console.error(err)
+      setError("Có lỗi xảy ra. Vui lòng thử lại")
+      setIsLoading(false)
     }
-  };
+  }
 
-  if (isLoading) return <Loading/>
+  if (isLoading) return <Loading />
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white-50">
@@ -123,15 +134,23 @@ export default function LoginPage() {
         </form>
 
         <div className="text-center text-sm text-black-600 mt-4">
-          <span>Quên mật khẩu?{" "}
-            <button onClick={() => router.push("/login/forgot")} className="text-pink-500 hover:underline cursor-pointer">
+          <span>
+            Quên mật khẩu?{" "}
+            <button
+              onClick={() => router.push("/login/forgot")}
+              className="text-pink-500 hover:underline cursor-pointer"
+            >
               Đổi thôi!
             </button>
           </span>
         </div>
         <div className="mt-3 text-sm text-center">
-          <span>Là người mới?{" "}
-            <button onClick={() => router.push("/signup")} className="text-pink-500 hover:underline cursor-pointer">
+          <span>
+            Là người mới?{" "}
+            <button
+              onClick={() => router.push("/signup")}
+              className="text-pink-500 hover:underline cursor-pointer"
+            >
               Tạo tài khoản!
             </button>
           </span>
@@ -139,4 +158,4 @@ export default function LoginPage() {
       </div>
     </div>
   )
-}  
+}
