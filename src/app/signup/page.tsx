@@ -170,7 +170,7 @@
 
           <Button
             variant="secondary"
-            className="w-full flex justify-center items-center gap-2 cursor-pointer"
+            className="w-40 mx-auto flex justify-center items-center gap-2 cursor-pointer"
             type="submit"
             disabled={isLoading}
           >

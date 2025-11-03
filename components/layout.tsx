@@ -1,13 +1,23 @@
-import { Header } from "./header"
-import { Footer } from "./footer"
-import {useRouter} from "next/navigation"
+'use client'
+
+import { Header } from './header'
+import { Footer } from './footer'
+import { useRouter } from 'next/navigation'
+import { useClerk } from '@clerk/nextjs'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const route = useRouter()
-  const handleLogout = () => {
-    console.log("Đăng xuất")
-    route.push('/')
+  const router = useRouter()
+  const { signOut } = useClerk() 
+
+  const handleLogout = async () => {
+    try {
+      await signOut()      
+      router.push('/')     
+    } catch (err) {
+      console.error('Đăng xuất thất bại', err)
+    }
   }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header onLogout={handleLogout} />

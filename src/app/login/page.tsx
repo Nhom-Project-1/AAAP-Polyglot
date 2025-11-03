@@ -10,7 +10,7 @@ export default function LoginPage() {
   const router = useRouter()
   const { isLoaded, signIn, setActive } = useSignIn()
   const { isSignedIn } = useUser() 
-
+  const [checkingRedirect, setCheckingRedirect] = useState(true)
   const [identifier, setIdentifier] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -18,9 +18,30 @@ export default function LoginPage() {
   const [error, setError] = useState("")
 
   useEffect(() => {
-    if (isSignedIn) {
-      router.push("/course") 
+    const checkAndRedirect = async () => {
+      if (!isSignedIn) {
+        setCheckingRedirect(false)
+        return
+      }
+
+      try {
+        const langRes = await fetch("/api/user-language", { credentials: "include" })
+        const langData = await langRes.json()
+
+        if (langData.current) {
+          router.push(`/course?lang=${langData.current.id}`)
+        } else {
+          router.push("/course/choose")
+        }
+      } catch (err) {
+        console.error(err)
+        router.push("/course/choose")
+      } finally {
+        setCheckingRedirect(false)
+      }
     }
+
+    checkAndRedirect()
   }, [isSignedIn, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -79,7 +100,7 @@ export default function LoginPage() {
     }
   }
 
-  if (isLoading) return <Loading />
+  if (isLoading || checkingRedirect) return <Loading />
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white-50">

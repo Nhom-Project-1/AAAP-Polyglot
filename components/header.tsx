@@ -20,8 +20,7 @@ export const Header = ({ onLogout }: HeaderProps) => {
   const router = useRouter()
   const pathname = usePathname()
   const [showLogoutModal, setShowLogoutModal] = useState(false)
-  const [hasChosenLanguage, setHasChosenLanguage] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [userLanguageId, setUserLanguageId] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchUserLanguage = async () => {
@@ -29,18 +28,14 @@ export const Header = ({ onLogout }: HeaderProps) => {
         const res = await fetch('/api/user-language', { cache: 'no-store' })
         if (!res.ok) throw new Error('Không thể lấy ngôn ngữ')
         const data = await res.json()
-        setHasChosenLanguage(!!data.current)
+        setUserLanguageId(data.current ? String(data.current.id) : null)
       } catch (err) {
         console.error(err)
-        setHasChosenLanguage(false)
-      } finally {
-        setLoading(false)
+        setUserLanguageId(null)
       }
     }
     fetchUserLanguage()
   }, [])
-
-  if (loading) return null
 
   return (
     <header className="w-full border-b-2 border-slate-200 px-6">
@@ -48,30 +43,26 @@ export const Header = ({ onLogout }: HeaderProps) => {
         <div className="flex items-center gap-x-6">
           <Image src="/logo.png" alt="Logo" width={32} height={32} />
           <span className="text-pink-300 font-bold text-4xl">AAAP Polyglot</span>
+
           <nav className="flex gap-x-6 ml-6">
             {menuItems.map((item) => {
-              const isAccount = item.href === '/account'
-              const isCourse = item.href === '/course'
-              const disabled = !hasChosenLanguage && isCourse
               const isActive = pathname.startsWith(item.href)
 
               return (
                 <span
                   key={item.href}
                   onClick={() => {
-                    if (isCourse) {
-                      router.push(hasChosenLanguage ? '/course' : '/course/choose')
-                      return
-                    }
-                    if (!disabled) {
+                    if (item.href === '/course') {
+                      router.push(userLanguageId ? `/course?lang=${userLanguageId}` : '/course/choose')
+                    } else {
                       router.push(item.href)
                     }
                   }}
-                  className={`text-2xl transition-colors ${
+                  className={`text-2xl font-medium transition-colors cursor-pointer ${
                     isActive
-                      ? 'font-medium text-pink-300 border-b-2 border-pink-300 pb-1 hover:text-pink-500'
-                      : 'font-medium text-pink-300 hover:text-pink-500'
-                  } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      ? 'text-pink-300 border-b-2 border-pink-300 pb-1 hover:text-pink-500'
+                      : 'text-pink-300 hover:text-pink-500'
+                  }`}
                 >
                   {item.name}
                 </span>
@@ -104,11 +95,7 @@ export const Header = ({ onLogout }: HeaderProps) => {
             <h3 className="text-lg font-bold text-pink-300 mb-4">Xác nhận đăng xuất</h3>
             <p className="mb-6">Bạn có chắc chắn muốn đăng xuất không?</p>
             <div className="flex justify-center gap-4">
-              <Button
-                variant="ghost"
-                onClick={() => setShowLogoutModal(false)}
-                className="cursor-pointer"
-              >
+              <Button variant="ghost" onClick={() => setShowLogoutModal(false)} className="cursor-pointer">
                 Hủy
               </Button>
               <Button

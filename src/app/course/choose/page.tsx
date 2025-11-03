@@ -19,7 +19,6 @@ export default function ChooseLanguagePage() {
   const [selected, setSelected] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // 🔹 chỉ lấy danh sách ngôn ngữ (không tự động chọn ngôn ngữ đã lưu)
   useEffect(() => {
     async function loadLanguages() {
       try {
