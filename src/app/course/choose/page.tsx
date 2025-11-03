@@ -5,7 +5,7 @@ import Layout from "@/components/layout"
 import ReactCountryFlag from "react-country-flag"
 import toast, { Toaster } from "react-hot-toast"
 import { useRouter } from "next/navigation"
-import Loading from "@/components/loading"
+import Loading from "@/components/ui/loading"
 
 type Language = {
   ma_ngon_ngu: number

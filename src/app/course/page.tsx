@@ -4,8 +4,8 @@ import { Suspense, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Layout from "@/components/layout";
 import UserProgress from "@/components/user-progress";
-import UnitLesson from "@/components/unit-lesson";
-import Loading from "@/components/loading";
+import UnitLesson from "@/src/app/course/unit-lesson";
+import Loading from "@/components/ui/loading";
 
 function CoursePageContent() {
   return (

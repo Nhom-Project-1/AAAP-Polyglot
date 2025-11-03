@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import Loading from "@/components/loading"
+import Loading from "@/components/ui/loading"
 import { useSignIn, useUser } from "@clerk/nextjs"
 
 export default function LoginPage() {

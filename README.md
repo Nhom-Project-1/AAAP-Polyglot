@@ -41,6 +41,7 @@ npm install keen-slider
 npm install lucide-react
 npm install react-country-flag
 npm install framer-motion
+npm install react-confetti
 
 ## Web sử dụng để chuyển văn bản thành âm thanh
 1. https://luvvoice.com/
@@ -66,3 +67,8 @@ npm install framer-motion
 - crying: Mặt khóc lúc không tìm được chương/bài học
 10. lesson: Trang bài học, hiển thị vocab và nút bắt đầu làm bài
 11. challenge: Trang challenge
+- congrat: Chúc mừng sau khi người dùng hoàn thành 1 bài học
+- quiz: Nội dung của các câu hỏi và các đáp án
+- challenge-header: Chứa thanh progress, số tim và nút thoát
+- challengefooter: chứa nút kiểm tra, hiện đáp án, biến mất thay = nút "Tiếp tục" sau khi hiện đáp án
+- exit-modal: Hiện lên khi ấn nút thoát

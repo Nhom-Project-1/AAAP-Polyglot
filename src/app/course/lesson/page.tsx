@@ -6,7 +6,7 @@ import { useEffect, useState } from "react"
 import { ArrowLeft, Volume2 } from "lucide-react"
 import Layout from "@/components/layout"
 import UserProgress from "@/components/user-progress"
-import Crying from "@/components/crying"
+import Crying from "@/components/ui/crying"
 
 type Unit = {
   ma_don_vi: number

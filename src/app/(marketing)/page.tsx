@@ -5,7 +5,7 @@ import { Lightbulb, Target, MessageCircle, ChevronRight, ChevronLeft } from "luc
 import { useKeenSlider } from "keen-slider/react"
 import "keen-slider/keen-slider.min.css"
 import ReactCountryFlag from "react-country-flag"
-import ScrollReveal from "@/components/scroll-reveal"
+import ScrollReveal from "@/src/app/(marketing)/scroll-reveal"
 
 type KeenSliderInstanceType = NonNullable<ReturnType<typeof useKeenSlider>[1]["current"]>
 

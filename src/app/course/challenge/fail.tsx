@@ -1,0 +1,58 @@
+"use client"
+
+import { motion } from "framer-motion"
+import {Button} from "@/components/ui/button"
+
+interface FailModalProps {
+  show: boolean
+  onClose: () => void
+  onRestart: () => void
+}
+
+export default function FailModal({ show, onClose, onRestart }: FailModalProps) {
+  if (!show) return null
+  const MotionButton = motion(Button)
+  return (
+    <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 120, damping: 10 }}
+        className="bg-white rounded-2xl shadow-xl p-8 w-[380px] text-center"
+      >
+        <motion.img
+          src="/fail.png"
+          alt="fail"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 150, damping: 12 }}
+          className="w-24 h-24 mx-auto mb-4"
+        />
+
+        <h2 className="text-3xl font-bold text-red-500 mb-2">Hết tim rồi</h2>
+        <p className="text-gray-600 mb-6">Bạn đã cố gắng rất nhiều, thử lại nhé!</p>
+
+        <div className="flex justify-center gap-15">
+            <MotionButton
+                variant="default"
+                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.05 }}
+                onClick={onClose}
+                className="px-6 py-3 text-lg rounded-lg cursor-pointer"
+            >
+                Thoát
+            </MotionButton>
+            <MotionButton
+                variant="secondary"
+                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.05 }}
+                onClick={onRestart}
+                className="px-6 py-3 text-lg rounded-lg cursor-pointer"
+            >
+                Làm lại
+            </MotionButton>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
