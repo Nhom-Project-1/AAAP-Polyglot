@@ -96,23 +96,9 @@ export default function ChallengePage() {
       <ExitModal
         show={showModal}
         onClose={() => setShowModal(false)}
-        onConfirm={() => {
-          const langData = localStorage.getItem("selectedLang");
-          if (langData) {
-            const langId = JSON.parse(langData).id;
-            router.push(`/course?lang=${langId}`);
-          }
-        }}
       />
       <CongratModal
         show={showCongrat}
-        onClose={() => {
-          const langData = localStorage.getItem("selectedLang");
-          if (langData) {
-            const langId = JSON.parse(langData).id;
-            router.push(`/course?lang=${langId}`);
-          }
-        }}
         onRestart={resetChallenge}
       />
       <FailModal

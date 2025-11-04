@@ -3,7 +3,6 @@
   import { Button } from "@/components/ui/button"
   import { useRouter } from "next/navigation"
   import toast from "react-hot-toast"
-  import LoadingTulip from "@/components/loading"
 
   export default function RegisterPage() {
     const router = useRouter()

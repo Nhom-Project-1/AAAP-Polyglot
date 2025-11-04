@@ -7,7 +7,6 @@ export const nguoi_dung = pgTable(
   "nguoi_dung",
   {
     ma_nguoi_dung: serial("ma_nguoi_dung").primaryKey(),
-    clerk_id: varchar("clerk_id", { length: 255 }).notNull(),
     ten_dang_nhap: varchar("ten_dang_nhap", { length: 100 }).notNull(),
     email: varchar("email", { length: 150 }).notNull(),
     mat_khau_hash: text("mat_khau_hash").notNull(),
@@ -15,6 +14,7 @@ export const nguoi_dung = pgTable(
     ngay_cap_nhat: timestamp("ngay_cap_nhat", { withTimezone: false }).defaultNow(),
     chuoi: integer("chuoi_ngay").default(0).notNull(),
     lan_cuoi_hoc: date("lan_cuoi_hoc"),
+    clerk_id: varchar("clerk_id", { length: 255 }),
   },
   (t) => ({
     uqUserName: uniqueIndex("uq_nguoi_dung_ten_dang_nhap").on(t.ten_dang_nhap),
@@ -79,6 +79,7 @@ export const tu_vung = pgTable("tu_vung", {
   phien_am: varchar("phien_am", { length: 100 }),
   nghia: varchar("nghia", { length: 255 }),
   lien_ket_am_thanh: text("lien_ket_am_thanh"),
+  vi_du: text("vi_du"),
 });
 
 
@@ -142,3 +143,18 @@ export const nguoi_dung_ngon_ngu = pgTable(
     uqUserLang: uniqueIndex("uq_user_lang").on(t.ma_nguoi_dung, t.ma_ngon_ngu),
   })
 );
+
+export const cau_tra_loi_nguoi_dung = pgTable("cau_tra_loi_nguoi_dung", {
+  id: serial("id").primaryKey(),
+  ma_nguoi_dung: integer("ma_nguoi_dung")
+    .references(() => nguoi_dung.ma_nguoi_dung, { onDelete: "cascade" }),
+  ma_bai_hoc: integer("ma_bai_hoc")
+    .references(() => bai_hoc.ma_bai_hoc, { onDelete: "cascade" }),
+  ma_thu_thach: integer("ma_thu_thach")
+    .references(() => thu_thach.ma_thu_thach, { onDelete: "cascade" }),
+  ma_lua_chon: integer("ma_lua_chon")
+    .references(() => lua_chon_thu_thach.ma_lua_chon, { onDelete: "cascade" }),
+  dung: boolean("dung").notNull().default(false),
+  lan_lam: integer("lan_lam").default(1).notNull(),
+  thoi_gian: timestamp("thoi_gian").defaultNow(),
+});

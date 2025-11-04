@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 
 interface Firework {
   id: number
@@ -13,18 +13,14 @@ interface Firework {
 
 interface CongratsProps {
   show: boolean
-  onClose: () => void
   onRestart?: () => void;
 }
 
-export default function Congrats({ show, onClose, onRestart }: CongratsProps) {
+export default function Congrats({ show, onRestart }: CongratsProps) {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const lessonId = searchParams.get("lessonId")
-  const challengeId = searchParams.get("challengeId")
-
   const [isClient, setIsClient] = useState(false)
   const [fireworks, setFireworks] = useState<Firework[]>([])
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     setIsClient(true)
@@ -39,7 +35,7 @@ export default function Congrats({ show, onClose, onRestart }: CongratsProps) {
     const colors = ["#f472b6", "#fb7185", "#facc15", "#fef08a", "#fda4af"]
 
     const interval = setInterval(() => {
-      const id = performance.now() + Math.random() // tránh dùng Date.now() khi SSR
+      const id = performance.now() + Math.random() 
       const color = colors[Math.floor(Math.random() * colors.length)]
       const x = Math.random() * window.innerWidth
       const y = Math.random() * (window.innerHeight * 0.7)
@@ -57,7 +53,28 @@ export default function Congrats({ show, onClose, onRestart }: CongratsProps) {
     }
   }, [show, isClient])
 
-  if (!show || !isClient) return null
+  if (!show || !isClient) return null 
+  const handleContinue = async () => {
+    try {
+      setLoading(true)
+      const res = await fetch("/api/user-language", {
+        method: "GET",
+        credentials: "include",
+      })
+      const data = await res.json()
+
+      if (res.ok && data.current?.id) {
+        router.push(`/course?lang=${data.current.id}`)
+      } else {
+        router.push("/login")
+      }
+    } catch (err) {
+      console.error("Lỗi khi điều hướng ngôn ngữ:", err)
+      router.push("/login")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="fixed inset-0 bg-pink-50 flex flex-col items-center justify-center z-50 overflow-hidden select-none">
@@ -144,7 +161,8 @@ export default function Congrats({ show, onClose, onRestart }: CongratsProps) {
         <motion.button
           whileTap={{ scale: 0.95 }}
           whileHover={{ scale: 1.05 }}
-          onClick={onClose}
+          onClick={handleContinue}
+          disabled={loading}
           className="px-8 py-3 bg-pink-400 text-white font-semibold rounded-2xl shadow-lg hover:bg-pink-500 transition cursor-pointer"
         >
           Tiếp tục học
