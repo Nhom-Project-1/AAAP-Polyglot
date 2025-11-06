@@ -5,32 +5,29 @@ import { motion } from "framer-motion"
 import { Crown } from "lucide-react"
 
 export default function RankingPage() {
-  const users = [
-    { username: "nguyenvana", score: 950 },
-    { username: "lethib", score: 880 },
-    { username: "tranquoc", score: 860 },
-    { username: "phamlinh", score: 830 },
-    { username: "ngocmai", score: 800 },
-    { username: "minhduc", score: 770 },
-    { username: "hoangnam", score: 750 },
-    { username: "lananh", score: 730 },
-    { username: "vuongtuan", score: 710 },
-    { username: "buiha", score: 700 },
-  ]
-
-  const currentUser = { username: "phuonganh", score: 450 }
-
-  const crownColors = ["text-yellow-400", "text-gray-400", "text-orange-400"]
-
-  const allUsers = [...users]
-  if (!allUsers.some(u => u.username === currentUser.username)) {
-    allUsers.push(currentUser)
+  const mockResponse = {
+    topRanking: [
+      { ma_nguoi_dung: "nguyenvana", tong_diem_xp: 950 },
+      { ma_nguoi_dung: "lethib", tong_diem_xp: 880 },
+      { ma_nguoi_dung: "tranquoc", tong_diem_xp: 860 },
+      { ma_nguoi_dung: "phamlinh", tong_diem_xp: 830 },
+      { ma_nguoi_dung: "ngocmai", tong_diem_xp: 800 },
+      { ma_nguoi_dung: "minhduc", tong_diem_xp: 770 },
+      { ma_nguoi_dung: "hoangnam", tong_diem_xp: 750 },
+      { ma_nguoi_dung: "lananh", tong_diem_xp: 730 },
+      { ma_nguoi_dung: "phuong", tong_diem_xp: 710 },
+      { ma_nguoi_dung: "tuan", tong_diem_xp: 700 },
+    ],
+    myRank: 19,
+    myScore: 50,
   }
-  allUsers.sort((a, b) => b.score - a.score)
 
-  const top10 = allUsers.slice(0, 10)
-  const isInTop = top10.some(u => u.username === currentUser.username)
-  const showExtraRow = !isInTop && allUsers.length > 10
+  const { topRanking, myRank, myScore } = mockResponse
+  const currentUser = "phuonganh"
+
+  const isInTop = topRanking.some(u => u.ma_nguoi_dung === currentUser)
+  const showExtraRow = !isInTop
+  const crownColors = ["text-yellow-400", "text-gray-400", "text-orange-400"]
 
   return (
     <Layout>
@@ -49,14 +46,14 @@ export default function RankingPage() {
             <thead>
               <tr className="bg-pink-100 text-left text-sm uppercase text-gray-700">
                 <th className="p-3 rounded-l-lg">Hạng</th>
-                <th className="p-3">Tên đăng nhập</th>
+                <th className="p-3">Người dùng</th>
                 <th className="p-3 text-right rounded-r-lg">Điểm</th>
               </tr>
             </thead>
             <tbody>
-              {top10.map((user, index) => (
+              {topRanking.map((user, index) => (
                 <motion.tr
-                  key={user.username}
+                  key={user.ma_nguoi_dung}
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
@@ -88,21 +85,21 @@ export default function RankingPage() {
                   </td>
                   <td
                     className={`p-3 ${
-                      user.username === currentUser.username
+                      user.ma_nguoi_dung === currentUser
                         ? "text-pink-500 font-semibold"
                         : ""
                     }`}
                   >
-                    {user.username}
+                    {user.ma_nguoi_dung}
                   </td>
                   <td
                     className={`p-3 text-right ${
-                      user.username === currentUser.username
+                      user.ma_nguoi_dung === currentUser
                         ? "text-pink-500 font-semibold"
                         : "text-gray-800"
                     }`}
                   >
-                    {user.score}
+                    {user.tong_diem_xp}
                   </td>
                 </motion.tr>
               ))}
@@ -110,7 +107,10 @@ export default function RankingPage() {
               {showExtraRow && (
                 <>
                   <tr>
-                    <td colSpan={3} className="h-10 text-center text-gray-400 text-lg">
+                    <td
+                      colSpan={3}
+                      className="h-10 text-center text-gray-400 text-lg"
+                    >
                       ...
                     </td>
                   </tr>
@@ -120,9 +120,9 @@ export default function RankingPage() {
                     transition={{ delay: 0.6 }}
                     className="bg-pink-50 font-medium border-t-2 border-pink-200"
                   >
-                    <td className="p-3 text-center text-gray-500">–</td>
-                    <td className="p-3 text-pink-500">{currentUser.username}</td>
-                    <td className="p-3 text-right text-pink-500">{currentUser.score}</td>
+                    <td className="p-3 text-center text-gray-700">{myRank}</td>
+                    <td className="p-3 text-pink-500">{currentUser}</td>
+                    <td className="p-3 text-right text-pink-500">{myScore}</td>
                   </motion.tr>
                 </>
               )}
