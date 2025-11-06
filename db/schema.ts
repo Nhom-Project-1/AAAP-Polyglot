@@ -114,8 +114,8 @@ export const muc_tieu = pgTable("muc_tieu", {
   ma_muc_tieu: serial("ma_muc_tieu").primaryKey(),
   ma_nguoi_dung: integer("ma_nguoi_dung")
     .references(() => nguoi_dung.ma_nguoi_dung, { onDelete: "cascade" }),
+  ten_muc_tieu: varchar("ten_muc_tieu", { length: 100 }).notNull(),
   diem_can_dat: integer("diem_can_dat").notNull(),
-  han_chot: date("han_chot"),
   trang_thai: varchar("trang_thai", { length: 50 }),
 });
 
