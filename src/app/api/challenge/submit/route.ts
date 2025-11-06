@@ -238,6 +238,15 @@ export async function POST(req: Request) {
           so_tim_con_lai: 5,
         })
         .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
+      
+        try {
+          await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/ranking`, {
+            method: "POST",
+          });
+        } catch (err) {
+          console.error("Không thể cập nhật bảng xếp hạng:", err);
+        }
+
 
       const percent = total > 0 ? ((soCauDung / total) * 100).toFixed(0) : "0";
 
