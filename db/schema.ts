@@ -12,9 +12,7 @@ export const nguoi_dung = pgTable(
     mat_khau_hash: text("mat_khau_hash").notNull(),
     ngay_tao: timestamp("ngay_tao", { withTimezone: false }).defaultNow(),
     ngay_cap_nhat: timestamp("ngay_cap_nhat", { withTimezone: false }).defaultNow(),
-    chuoi: integer("chuoi_ngay").default(0).notNull(),
-    lan_cuoi_hoc: date("lan_cuoi_hoc"),
-    clerk_id: varchar("clerk_id", { length: 255 }),
+    ho_ten: varchar("ho_ten", { length: 150 }),
   },
   (t) => ({
     uqUserName: uniqueIndex("uq_nguoi_dung_ten_dang_nhap").on(t.ten_dang_nhap),
@@ -112,11 +110,7 @@ export const tien_do = pgTable("tien_do", {
 
 export const muc_tieu = pgTable("muc_tieu", {
   ma_muc_tieu: serial("ma_muc_tieu").primaryKey(),
-  ma_nguoi_dung: integer("ma_nguoi_dung")
-    .references(() => nguoi_dung.ma_nguoi_dung, { onDelete: "cascade" }),
-  ten_muc_tieu: varchar("ten_muc_tieu", { length: 100 }).notNull(),
   diem_can_dat: integer("diem_can_dat").notNull(),
-  trang_thai: varchar("trang_thai", { length: 50 }),
 });
 
 export const bang_xep_hang = pgTable("bang_xep_hang", {
@@ -158,3 +152,15 @@ export const cau_tra_loi_nguoi_dung = pgTable("cau_tra_loi_nguoi_dung", {
   lan_lam: integer("lan_lam").default(1).notNull(),
   thoi_gian: timestamp("thoi_gian").defaultNow(),
 });
+
+export const tien_do_muc_tieu = pgTable(
+  "tien_do_muc_tieu",
+  {
+    ma_nguoi_dung: integer("ma_nguoi_dung")
+      .references(() => nguoi_dung.ma_nguoi_dung, { onDelete: "cascade" }),
+    ma_muc_tieu: integer("ma_muc_tieu")
+      .references(() => muc_tieu.ma_muc_tieu, { onDelete: "cascade" }),
+    diem_hien_tai: integer("diem_hien_tai").default(0).notNull(),
+    hoan_thanh: boolean("hoan_thanh").default(false),
+  },
+);
