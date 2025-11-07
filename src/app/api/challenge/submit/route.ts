@@ -6,6 +6,7 @@ import {
   tien_do,
   cau_tra_loi_nguoi_dung,
 } from "../../../../../db/schema";
+import { muc_tieu } from "../../../../../db/schema";
 import { and, eq, count, sql } from "drizzle-orm";
 
 export async function POST(req: Request) {
@@ -245,6 +246,28 @@ export async function POST(req: Request) {
           });
         } catch (err) {
           console.error("Không thể cập nhật bảng xếp hạng:", err);
+        }
+
+        try {
+          const goals = await db.select().from(muc_tieu);
+          await Promise.all(
+            goals.map((goal) =>
+              fetch(
+                `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"}/api/goal/progress/update`,
+                {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    ma_nguoi_dung,
+                    ma_muc_tieu: goal.ma_muc_tieu,
+                  }),
+                }
+              )
+            )
+          );
+          console.log(`🎯 Đã cập nhật tiến độ cho ${goals.length} mục tiêu của người dùng ${ma_nguoi_dung}`);
+        } catch (err) {
+          console.error("❌ Lỗi khi cập nhật tiến độ mục tiêu:", err);
         }
 
 
