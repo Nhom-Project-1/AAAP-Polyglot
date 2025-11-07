@@ -156,6 +156,7 @@ export const cau_tra_loi_nguoi_dung = pgTable("cau_tra_loi_nguoi_dung", {
 export const tien_do_muc_tieu = pgTable(
   "tien_do_muc_tieu",
   {
+    id: serial("id").primaryKey(),
     ma_nguoi_dung: integer("ma_nguoi_dung")
       .references(() => nguoi_dung.ma_nguoi_dung, { onDelete: "cascade" }),
     ma_muc_tieu: integer("ma_muc_tieu")
