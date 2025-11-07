@@ -19,6 +19,21 @@ type Unit = {
   bai_hoc: Lesson[]
 }
 
+type ApiUnit = {
+  ma_don_vi: number;
+  ten_don_vi: string;
+  mo_ta?: string;
+  ma_ngon_ngu: number;
+  bai_hoc: ApiLesson[];
+};
+
+type ApiLesson = {
+  ma_bai_hoc: number;
+  ten_bai_hoc: string;
+  thu_tu: number;
+  ma_don_vi: number;
+};
+
 export default function UnitLesson() {
   const [units, setUnits] = useState<Unit[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -36,21 +51,22 @@ export default function UnitLesson() {
 
     const fetchUnits = async () => {
       try {
-        const res = await fetch(`api/languages/${languageId}/units`)
+        const res = await fetch(`api/languages/${languageId}/units`, {cache: "no-store"})
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const data = await res.json()
 
-        const mappedUnits: Unit[] = data.data.map((u: any) => ({
+        const mappedUnits: Unit[] = data.data.map((u: ApiUnit) => ({
           ma_don_vi: u.ma_don_vi,
           ten_don_vi: u.ten_don_vi,
           mo_ta: u.mo_ta,
           ma_ngon_ngu: u.ma_ngon_ngu,
-          bai_hoc: u.bai_hoc.map((l: any) => ({
+          bai_hoc: (u.bai_hoc || []).map((l: ApiLesson) => ({
             ma_bai_hoc: l.ma_bai_hoc,
             ten_bai_hoc: l.ten_bai_hoc,
             thu_tu: l.thu_tu,
             ma_don_vi: l.ma_don_vi,
-          })),
+          }))
+          .sort((a: Lesson, b: Lesson) => a.ma_bai_hoc - b.ma_bai_hoc),
         }))
         setUnits(mappedUnits)
       } catch (err) {

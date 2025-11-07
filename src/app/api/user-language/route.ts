@@ -1,166 +1,208 @@
-import { NextRequest, NextResponse } from "next/server";
-import db, { schema } from "../../../../db/drizzle";
-import { eq, ilike, desc } from "drizzle-orm";
-import jwt from "jsonwebtoken";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { and, desc, eq } from 'drizzle-orm';
+import jwt from 'jsonwebtoken';
+import { NextRequest, NextResponse } from 'next/server';
+import db, { schema } from '../../../../db/drizzle';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
 export async function POST(req: NextRequest) {
-  type PostBody = {
-    languageId?: number | string;
-    languageName?: string;
-  };
-
-  let body: PostBody;
   try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Body không phải JSON hợp lệ" }, { status: 400 });
-  }
+    // 🧩 Lấy & giải mã token từ cookie
+    const token = req.cookies.get('token')?.value;
+    if (!token)
+      return NextResponse.json(
+        { error: 'Không có token xác thực' },
+        { status: 401 },
+      );
 
-  const token = req.cookies.get("token")?.value;
-  if (!token) {
-    return NextResponse.json({ error: "Không có token xác thực" }, { status: 401 });
-  }
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch {
+      return NextResponse.json(
+        { error: 'Token không hợp lệ hoặc đã hết hạn' },
+        { status: 401 },
+      );
+    }
 
-  let decoded: any;
-  try {
-    decoded = jwt.verify(token, JWT_SECRET);
-  } catch {
-    return NextResponse.json({ error: "Token không hợp lệ hoặc đã hết hạn" }, { status: 401 });
-  }
+    // 🔍 Token phải có `userId`
+    const ma_nguoi_dung = decoded.userId;
+    if (!ma_nguoi_dung)
+      return NextResponse.json(
+        { error: 'Không thể xác định người dùng từ token' },
+        { status: 401 },
+      );
 
-  const ma_nguoi_dung = decoded.ma_nguoi_dung;
-  if (!ma_nguoi_dung) {
-    return NextResponse.json({ error: "Không thể xác định người dùng từ token" }, { status: 401 });
-  }
+    // 📦 Parse body
+    const body = await req.json().catch(() => null);
+    if (!body)
+      return NextResponse.json({ error: 'Body không hợp lệ' }, { status: 400 });
 
-  const { languageId, languageName } = body;
-  if (!languageId && !languageName) {
-    return NextResponse.json({ error: "Thiếu languageId hoặc languageName" }, { status: 400 });
-  }
+    const { languageId, languageName } = body;
+    if (!languageId && !languageName)
+      return NextResponse.json(
+        { error: 'Thiếu languageId hoặc languageName' },
+        { status: 400 },
+      );
 
-  const user = await db
-    .select({ id: schema.nguoi_dung.ma_nguoi_dung })
-    .from(schema.nguoi_dung)
-    .where(eq(schema.nguoi_dung.ma_nguoi_dung, Number(ma_nguoi_dung)))
-    .limit(1);
+    // 🧠 Kiểm tra người dùng có tồn tại
+    const user = await db.query.nguoi_dung.findFirst({
+      where: (tbl, { eq }) => eq(tbl.ma_nguoi_dung, Number(ma_nguoi_dung)),
+    });
+    if (!user)
+      return NextResponse.json(
+        { error: 'Người dùng không tồn tại' },
+        { status: 404 },
+      );
 
-  if (!user.length) return NextResponse.json({ error: "Người dùng không tồn tại" }, { status: 404 });
+    // 🔍 Xác định ngôn ngữ
+    let langId: number;
+    let langName: string;
 
-  let langId: number;
-  let langName: string;
+    if (languageId) {
+      const parsed = Number(languageId);
+      if (!Number.isFinite(parsed) || parsed <= 0)
+        return NextResponse.json(
+          { error: 'languageId không hợp lệ' },
+          { status: 400 },
+        );
 
-  if (languageId != null) {
-    const parsed = Number(languageId);
-    if (!Number.isFinite(parsed) || parsed <= 0)
-      return NextResponse.json({ error: "languageId không hợp lệ" }, { status: 400 });
-
-    const lang = await db
-      .select({ id: schema.ngon_ngu.ma_ngon_ngu, name: schema.ngon_ngu.ten_ngon_ngu })
-      .from(schema.ngon_ngu)
-      .where(eq(schema.ngon_ngu.ma_ngon_ngu, parsed))
-      .limit(1);
-
-    if (!lang.length) return NextResponse.json({ error: "Ngôn ngữ không tồn tại" }, { status: 404 });
-
-    langId = parsed;
-    langName = lang[0].name;
-  } else {
-    const name = String(languageName ?? "").trim();
-    if (!name) return NextResponse.json({ error: "languageName không hợp lệ" }, { status: 400 });
-
-    const lang = await db
-      .select({ id: schema.ngon_ngu.ma_ngon_ngu, name: schema.ngon_ngu.ten_ngon_ngu })
-      .from(schema.ngon_ngu)
-      .where(ilike(schema.ngon_ngu.ten_ngon_ngu, name))
-      .limit(1);
-
-    if (!lang.length) return NextResponse.json({ error: "Ngôn ngữ không tồn tại" }, { status: 404 });
-
-    langId = Number(lang[0].id);
-    langName = lang[0].name;
-  }
-
-  try {
-    await db.update(schema.nguoi_dung_ngon_ngu)
-      .set({ is_active: false })
-      .where(eq(schema.nguoi_dung_ngon_ngu.ma_nguoi_dung, Number(ma_nguoi_dung)));
-
-    await db.insert(schema.nguoi_dung_ngon_ngu)
-      .values({ ma_nguoi_dung: Number(ma_nguoi_dung), ma_ngon_ngu: langId, is_active: true })
-      .onConflictDoUpdate({
-        target: [schema.nguoi_dung_ngon_ngu.ma_nguoi_dung, schema.nguoi_dung_ngon_ngu.ma_ngon_ngu],
-        set: { is_active: true },
+      const lang = await db.query.ngon_ngu.findFirst({
+        where: (tbl, { eq }) => eq(tbl.ma_ngon_ngu, parsed),
       });
+      if (!lang)
+        return NextResponse.json(
+          { error: 'Ngôn ngữ không tồn tại' },
+          { status: 404 },
+        );
+
+      langId = lang.ma_ngon_ngu;
+      langName = lang.ten_ngon_ngu;
+    } else {
+      const name = String(languageName ?? '').trim();
+      if (!name)
+        return NextResponse.json(
+          { error: 'languageName không hợp lệ' },
+          { status: 400 },
+        );
+
+      const lang = await db.query.ngon_ngu.findFirst({
+        where: (tbl, { ilike }) => ilike(tbl.ten_ngon_ngu, name),
+      });
+      if (!lang)
+        return NextResponse.json(
+          { error: 'Ngôn ngữ không tồn tại' },
+          { status: 404 },
+        );
+
+      langId = lang.ma_ngon_ngu;
+      langName = lang.ten_ngon_ngu;
+    }
+
+    // 🧹 Reset tất cả ngôn ngữ về false
+    await db
+      .update(schema.nguoi_dung_ngon_ngu)
+      .set({ is_active: false })
+      .where(eq(schema.nguoi_dung_ngon_ngu.ma_nguoi_dung, ma_nguoi_dung));
+
+    // 🔁 Kiểm tra bản ghi hiện có
+    const existing = await db.query.nguoi_dung_ngon_ngu.findFirst({
+      where: (tbl, { and, eq }) =>
+        and(eq(tbl.ma_nguoi_dung, ma_nguoi_dung), eq(tbl.ma_ngon_ngu, langId)),
+    });
+
+    if (existing) {
+      // ➕ Nếu có rồi → bật lại `is_active`
+      await db
+        .update(schema.nguoi_dung_ngon_ngu)
+        .set({ is_active: true })
+        .where(
+          and(
+            eq(schema.nguoi_dung_ngon_ngu.ma_nguoi_dung, ma_nguoi_dung),
+            eq(schema.nguoi_dung_ngon_ngu.ma_ngon_ngu, langId),
+          ),
+        );
+    } else {
+      // ➕ Nếu chưa có → thêm mới
+      await db.insert(schema.nguoi_dung_ngon_ngu).values({
+        ma_nguoi_dung,
+        ma_ngon_ngu: langId,
+        is_active: true,
+      });
+    }
+
+    // ✅ Trả về kết quả
+    return NextResponse.json(
+      {
+        message: `Đã chọn ngôn ngữ "${langName}"`,
+        ma_nguoi_dung,
+        languageId: langId,
+        languageName: langName,
+      },
+      { status: 201 },
+    );
   } catch (err) {
-    console.error("Lỗi đặt ngôn ngữ active:", err);
-    return NextResponse.json({ error: "Không thể đặt ngôn ngữ active." }, { status: 500 });
+    console.error('❌ Lỗi khi lưu ngôn ngữ:', err);
+    return NextResponse.json(
+      { error: 'Không thể lưu ngôn ngữ' },
+      { status: 500 },
+    );
   }
-
-  const lessons = await db
-    .select({ ma_bai_hoc: schema.bai_hoc.ma_bai_hoc })
-    .from(schema.bai_hoc)
-    .innerJoin(schema.unit, eq(schema.unit.ma_don_vi, schema.bai_hoc.ma_don_vi))
-    .where(eq(schema.unit.ma_ngon_ngu, langId));
-
-  const existingProgress = await db
-    .select({ ma_bai_hoc: schema.tien_do.ma_bai_hoc })
-    .from(schema.tien_do)
-    .where(eq(schema.tien_do.ma_nguoi_dung, Number(ma_nguoi_dung)));
-
-  const existingIds = new Set(existingProgress.map(p => p.ma_bai_hoc));
-
-  const newProgress = lessons
-    .filter(l => !existingIds.has(l.ma_bai_hoc))
-    .map(l => ({
-      ma_nguoi_dung: Number(ma_nguoi_dung),
-      ma_bai_hoc: l.ma_bai_hoc,
-      diem_kinh_nghiem: 0,
-      so_tim_con_lai: 5,
-      trang_thai: "dang_hoc",
-    }));
-
-  if (newProgress.length > 0) {
-    await db.insert(schema.tien_do).values(newProgress);
-  }
-
-  return NextResponse.json({
-    ok: true,
-    message: `Đã chọn ngôn ngữ "${langName}" & khởi tạo tiến độ cho ${newProgress.length} bài học.`,
-    ma_nguoi_dung: Number(ma_nguoi_dung),
-    languageId: langId,
-    languageName: langName,
-    so_bai_moi: newProgress.length,
-  }, { status: 201 });
 }
 
+// 🔹 Lấy danh sách ngôn ngữ của user (GET)
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get("token")?.value;
-  if (!token) return NextResponse.json({ error: "Không có token xác thực" }, { status: 401 });
-
-  let decoded: any;
   try {
-    decoded = jwt.verify(token, JWT_SECRET);
-  } catch {
-    return NextResponse.json({ error: "Token không hợp lệ hoặc đã hết hạn" }, { status: 401 });
+    const token = req.cookies.get('token')?.value;
+    if (!token)
+      return NextResponse.json(
+        { error: 'Không có token xác thực' },
+        { status: 401 },
+      );
+
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch {
+      return NextResponse.json(
+        { error: 'Token không hợp lệ hoặc đã hết hạn' },
+        { status: 401 },
+      );
+    }
+
+    const ma_nguoi_dung = decoded.userId;
+    if (!ma_nguoi_dung)
+      return NextResponse.json(
+        { error: 'Không thể xác định người dùng từ token' },
+        { status: 401 },
+      );
+
+    const rows = await db
+      .select({
+        id: schema.ngon_ngu.ma_ngon_ngu,
+        name: schema.ngon_ngu.ten_ngon_ngu,
+        description: schema.ngon_ngu.mo_ta,
+        is_active: schema.nguoi_dung_ngon_ngu.is_active,
+      })
+      .from(schema.nguoi_dung_ngon_ngu)
+      .innerJoin(
+        schema.ngon_ngu,
+        eq(schema.ngon_ngu.ma_ngon_ngu, schema.nguoi_dung_ngon_ngu.ma_ngon_ngu),
+      )
+      .where(eq(schema.nguoi_dung_ngon_ngu.ma_nguoi_dung, ma_nguoi_dung))
+      .orderBy(
+        desc(schema.nguoi_dung_ngon_ngu.is_active),
+        schema.ngon_ngu.ten_ngon_ngu,
+      );
+
+    const current = rows.find((r) => r.is_active) ?? null;
+    return NextResponse.json({ ma_nguoi_dung, current, languages: rows });
+  } catch (err) {
+    console.error('❌ Lỗi GET /user-language:', err);
+    return NextResponse.json(
+      { error: 'Không thể lấy danh sách ngôn ngữ' },
+      { status: 500 },
+    );
   }
-
-  const ma_nguoi_dung = decoded.ma_nguoi_dung;
-  if (!ma_nguoi_dung) return NextResponse.json({ error: "Không thể xác định người dùng từ token" }, { status: 401 });
-
-  const rows = await db
-    .select({
-      id: schema.ngon_ngu.ma_ngon_ngu,
-      name: schema.ngon_ngu.ten_ngon_ngu,
-      description: schema.ngon_ngu.mo_ta,
-      is_active: schema.nguoi_dung_ngon_ngu.is_active,
-    })
-    .from(schema.nguoi_dung_ngon_ngu)
-    .innerJoin(schema.ngon_ngu, eq(schema.ngon_ngu.ma_ngon_ngu, schema.nguoi_dung_ngon_ngu.ma_ngon_ngu))
-    .where(eq(schema.nguoi_dung_ngon_ngu.ma_nguoi_dung, ma_nguoi_dung))
-    .orderBy(desc(schema.nguoi_dung_ngon_ngu.is_active), schema.ngon_ngu.ten_ngon_ngu);
-
-  const current = rows.find(r => r.is_active) ?? null;
-  return NextResponse.json({ ma_nguoi_dung, current, languages: rows });
 }

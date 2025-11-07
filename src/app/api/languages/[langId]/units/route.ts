@@ -37,7 +37,8 @@ export async function GET(req: NextRequest, ctx: { params: Promise<Params> }) {
     const lessons: LessonRow[] = await db
       .select()
       .from(s.bai_hoc)
-      .where(inArray(s.bai_hoc.ma_don_vi, unitIds));
+      .where(inArray(s.bai_hoc.ma_don_vi, unitIds))
+      .orderBy(s.bai_hoc.ma_bai_hoc);
 
     const lessonsByUnit = new Map<number, LessonRow[]>();
     for (const id of unitIds) lessonsByUnit.set(id, []);

@@ -3,9 +3,10 @@
 import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Loading from "@/components/ui/loading"
 import { useAuthStore } from "@/lib/store";
 
-export default function LoginPage() {
+export default function LoginAdminPage() {
   const router = useRouter()
   const [checkingRedirect, setCheckingRedirect] = useState(true)
   const [identifier, setIdentifier] = useState("")
@@ -20,14 +21,11 @@ export default function LoginPage() {
       try {
         const res = await fetch("/api/user", { credentials: "include" })
         if (res.ok) {
-          // Nếu token hợp lệ, kiểm tra ngôn ngữ người dùng
-          const langRes = await fetch("/api/user-language", { credentials: "include" })
-          const langData = await langRes.json()
-
-          if (langData.current) {
-            router.push(`/course?lang=${langData.current.id}`)
+          const user = await res.json();
+          if (user.role === 'admin') {
+            router.push(`/admin`)
           } else {
-            router.push("/course/choose")
+            router.push(`/`)
           }
           return
         }
@@ -47,7 +45,7 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      const res = await fetch("/api/login", {
+      const res = await fetch("/api/admin/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier, password }),
@@ -64,19 +62,9 @@ export default function LoginPage() {
 
       setUser(data.user);
       setIsLoggedIn(true);
-      if (data.user.role === "admin") {
-        setIsAdmin(true);
-        router.push("/admin");
-      } else {
-        const langRes = await fetch("/api/user-language", { credentials: "include" })
-        const langData = await langRes.json()
-  
-        if (langData.current) {
-          router.push(`/course?lang=${langData.current.id}`)
-        } else {
-          router.push("/course/choose")
-        }
-      }
+      setIsAdmin(true);
+      router.push("/admin")
+
     } catch (err) {
       console.error(err)
       setError("Có lỗi xảy ra. Vui lòng thử lại.")
@@ -91,7 +79,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-white-50">
       <div className="w-full max-w-md bg-gray p-8 rounded-2xl shadow-md">
         <h1 className="text-2xl text-black-500 font-bold text-center mb-6">
-          Đăng nhập vào AAAP Polyglot
+          Admin Login
         </h1>
         <form onSubmit={handleSubmit} className="space-y-4">
 
@@ -168,29 +156,6 @@ export default function LoginPage() {
             </Button>
           {/* </div> */}
         </form>
-
-        <div className="text-center text-sm text-black-600 mt-4">
-          <span>
-            Quên mật khẩu?{" "}
-            <button
-              onClick={() => router.push("/login/forgot")}
-              className="text-pink-500 hover:underline cursor-pointer"
-            >
-              Đổi thôi!
-            </button>
-          </span>
-        </div>
-        <div className="mt-3 text-sm text-center">
-          <span>
-            Là người mới?{" "}
-            <button
-              onClick={() => router.push("/signup")}
-              className="text-pink-500 hover:underline cursor-pointer"
-            >
-              Tạo tài khoản!
-            </button>
-          </span>
-        </div>
       </div>
     </div>
   )

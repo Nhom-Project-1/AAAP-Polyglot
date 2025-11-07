@@ -1,203 +1,151 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth, clerkClient } from "@clerk/nextjs/server";
-import bcrypt from "bcryptjs";
-import db, { schema } from "../../../../db/drizzle";
-import { and, eq, ne } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server"
+import bcrypt from "bcryptjs"
+import jwt from "jsonwebtoken"
+import db, { schema } from "../../../../db/drizzle"
+import { eq, and, ne } from "drizzle-orm"
+
+const JWT_SECRET = process.env.JWT_SECRET!
 
 type Body = {
-  fullName?: string;
-  username?: string;
-  currentPassword?: string;
-  newPassword?: string;
-};
+  fullName?: string
+  username?: string
+  currentPassword?: string
+  newPassword?: string
+}
 
 export async function PATCH(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: "Không tồn tại" }, { status: 401 });
-  }
-
-  let body: Body;
   try {
-    body = (await req.json()) as Body;
-  } catch {
-    return NextResponse.json({ error: "Body không hợp lệ" }, { status: 400 });
-  }
-
-  const { username, fullName, currentPassword, newPassword } = body;
-
-  const client = await clerkClient();
-
-  if (!username && !fullName && !newPassword) {
-    return NextResponse.json({ error: "Không có dữ liệu để cập nhật" }, { status: 400 });
-  }
-  
-  if (body.hasOwnProperty("username") && !username?.trim()) {
-    return NextResponse.json({ error: "Tên đăng nhập không được để trống." }, { status: 400 });
-  }
-  if (body.hasOwnProperty("fullName") && !fullName?.trim()) {
-    return NextResponse.json({ error: "Họ tên không được để trống." }, { status: 400 });
-  }
-
-  if (username && username.length > 20) {
-    return NextResponse.json({ error: "Tên đăng nhập tối đa 20 ký tự." }, { status: 400 });
-  }
-  if (newPassword) {
-    if (!currentPassword) {
-      return NextResponse.json({ error: "Cần nhập mật khẩu hiện tại." }, { status: 400 });
-    }
-    if (newPassword.length < 8) {
-      return NextResponse.json({ error: "Mật khẩu mới phải từ 8 ký tự trở lên." }, { status: 400 });
-    }
-    if (newPassword.includes(" ")) {
-      return NextResponse.json({ error: "Mật khẩu không được chứa khoảng trắng." }, { status: 400 });
-    }
-    if (!/[A-Z]/.test(newPassword)) {
-      return NextResponse.json({ error: "Mật khẩu cần ít nhất 1 chữ in hoa." }, { status: 400 });
-    }
-    if (!/[!@#$%^&*(),.?\":{}|<>]/.test(newPassword)) {
-      return NextResponse.json({ error: "Mật khẩu cần ít nhất 1 ký tự đặc biệt." }, { status: 400 });
-    }
-    if (newPassword === currentPassword) {
-      return NextResponse.json({ error: "Mật khẩu mới phải khác mật khẩu hiện tại." }, { status: 400 });
-    }
-  }
-
-  try {
-    const user = await client.users.getUser(userId);
-    const email = user.primaryEmailAddress?.emailAddress?.toLowerCase();
-    if (!email) {
-      return NextResponse.json({ error: "Không tìm thấy email người dùng." }, { status: 400 });
+    // 🔹 Lấy token từ cookie và giải mã
+    const token = req.cookies.get("token")?.value
+    if (!token) {
+      return NextResponse.json({ error: "Chưa đăng nhập." }, { status: 401 })
     }
 
-    const rows = await db
-      .select({
-        id: schema.nguoi_dung.ma_nguoi_dung,
-        email: schema.nguoi_dung.email,
-        hash: schema.nguoi_dung.mat_khau_hash,
-        ten_dn: schema.nguoi_dung.ten_dang_nhap,
-      })
-      .from(schema.nguoi_dung)
-      .where(eq(schema.nguoi_dung.email, email))
-      .limit(1);
+    const decoded: string | jwt.JwtPayload = jwt.verify(token, JWT_SECRET)
+    const maNguoiDung = (decoded as jwt.JwtPayload).userId
 
-    const dbUser = rows[0];
-    if (!dbUser) {
-      return NextResponse.json({ error: "Không tìm thấy người dùng trong DB." }, { status: 404 });
-    }
+    // 🔹 Parse body
+    const { fullName, username, currentPassword, newPassword } =
+      (await req.json()) as Body
 
-
-    const currentFullName = (user.publicMetadata?.fullName as string | undefined)?.trim() || "";
-    const isSameUsername = username === dbUser.ten_dn || !username;
-    const isSameFullName = fullName?.trim() === currentFullName || !fullName;
-    const noNewPassword = !newPassword?.trim();
-
-    if (isSameUsername && isSameFullName && noNewPassword) {
-      return NextResponse.json({ error: "Không có thay đổi nào để cập nhật." }, { status: 400 });
-    }
-    //
-
-    let nextHash: string | undefined;
-    if (newPassword) {
-      const ok = await bcrypt.compare(currentPassword!, dbUser.hash);
-      if (!ok) {
-        return NextResponse.json({ error: "Mật khẩu hiện tại không đúng." }, { status: 400 });
-      }
-      await client.users.updateUser(userId, { password: newPassword });
-      nextHash = await bcrypt.hash(newPassword, 10);
-    }
-
-    if (username) {
-      const dup = await db
-        .select({ id: schema.nguoi_dung.ma_nguoi_dung })
-        .from(schema.nguoi_dung)
-        .where(
-          and(
-            eq(schema.nguoi_dung.ten_dang_nhap, username),
-            ne(schema.nguoi_dung.ma_nguoi_dung, dbUser.id)
-          )
-        )
-        .limit(1);
-
-      if (dup.length) {
-        return NextResponse.json({ error: "Tên đăng nhập đã tồn tại." }, { status: 409 });
-      }
-    }
-    
-    if (username || fullName) {
-      if (fullName) {
-        const parts = fullName.trim().split(/\s+/);
-        const firstName = parts.shift() || "";
-        const lastName = parts.join(" ");
-
-        await client.users.updateUser(userId, {
-          firstName,
-          lastName,
-          publicMetadata: { ...user.publicMetadata, fullName },
-        });
-      }
-
-      if (username) {
-        await client.users.updateUser(userId, { username });
-      }
-    }
-
-    const updates: Partial<typeof schema.nguoi_dung.$inferInsert> = {};
-    if (email) updates.email = email;
-    if (username) updates.ten_dang_nhap = username;
-    if (nextHash) updates.mat_khau_hash = nextHash;
-    updates.ngay_cap_nhat = new Date();
-
-    if (Object.keys(updates).length === 0) {
+    if (!fullName && !username && !newPassword) {
       return NextResponse.json(
-        {
-          message: "Cập nhật thành công!",
-          user: { ma_nguoi_dung: dbUser.id, email: dbUser.email, ho_ten: dbUser.ten_dn },
-        },
-        { status: 200 }
-      );
+        { error: "Không có dữ liệu để cập nhật." },
+        { status: 400 }
+      )
     }
 
+    // 🔹 Lấy thông tin user hiện tại
+    const user = await db.query.nguoi_dung.findFirst({
+      where: (nguoi_dung, { eq }) => eq(nguoi_dung.ma_nguoi_dung, maNguoiDung),
+    })
+
+    if (!user) {
+      return NextResponse.json({ error: "Không tìm thấy người dùng." }, { status: 404 })
+    }
+
+    // 🔹 Kiểm tra username trùng
+    if (username && username !== user.ten_dang_nhap) {
+      const dup = await db.query.nguoi_dung.findFirst({
+        where: (nguoi_dung, { eq, ne }) =>
+          and(
+            eq(nguoi_dung.ten_dang_nhap, username),
+            ne(nguoi_dung.ma_nguoi_dung, maNguoiDung)
+          ),
+      })
+      if (dup) {
+        return NextResponse.json({ error: "Tên đăng nhập đã tồn tại." }, { status: 409 })
+      }
+    }
+
+    // 🔹 Kiểm tra mật khẩu cũ nếu đổi mật khẩu
+    let nextHash: string | undefined
+    if (currentPassword && !newPassword) {
+      // Người dùng nhập currentPassword nhưng không nhập newPassword → báo lỗi
+      return NextResponse.json(
+        { error: "Vui lòng nhập mật khẩu mới hoặc để trống mật khẩu hiện tại để thực hiện những thay đổi khác." },
+        { status: 400 }
+      )
+    }
+    if (newPassword) {
+      if (!currentPassword) {
+        return NextResponse.json({ error: "Cần nhập mật khẩu hiện tại." }, { status: 400 })
+      }
+
+      const ok = await bcrypt.compare(currentPassword, user.mat_khau_hash)
+      if (!ok) {
+        return NextResponse.json({ error: "Mật khẩu hiện tại không đúng." }, { status: 400 })
+      }
+
+      const sameAsOld = await bcrypt.compare(newPassword, user.mat_khau_hash)
+      if (sameAsOld) {
+        return NextResponse.json(
+          { error: "Mật khẩu mới bị trùng mật khẩu hiện tại." },
+          { status: 400 }
+        )
+      }
+
+      if (newPassword.length < 8) {
+        return NextResponse.json({ error: "Mật khẩu mới phải từ 8 ký tự trở lên." },{ status: 400 })}
+      if (newPassword.includes(" ")) {
+        return NextResponse.json({ error: "Mật khẩu không được chứa khoảng trắng." }, { status: 400 });
+      }
+      if (!/[A-Z]/.test(newPassword)) {
+        return NextResponse.json({ error: "Mật khẩu cần ít nhất 1 chữ in hoa." }, { status: 400 });
+      }
+      if (!/[0-9]/.test(newPassword)) {
+        return NextResponse.json({ error: "Mật khẩu cần ít nhất 1 chữ số." }, { status: 400 });
+      }
+      const specialChars = newPassword.match(/[!@#$%^&*(),.?":{}|<>]/g)
+      if (!specialChars || specialChars.length < 2) {
+        return NextResponse.json({ error: "Mật khẩu cần ít nhất 2 ký tự đặc biệt." }, { status: 400 })
+      }
+
+      nextHash = await bcrypt.hash(newPassword, 10)
+    }
+
+    // 🔹 Tạo object cập nhật
+    const updates: Partial<typeof schema.nguoi_dung.$inferInsert> = {}
+    if (fullName && fullName.trim() !== user.ho_ten) updates.ho_ten = fullName.trim()
+    if (username && username.trim() !== user.ten_dang_nhap)
+      updates.ten_dang_nhap = username.trim()
+    if (nextHash) updates.mat_khau_hash = nextHash
+    
+
+    // 🔹 Nếu không có thay đổi thật sự
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: "Không có thay đổi nào để cập nhật." }, { status: 400 })
+    }
+
+    updates.ngay_cap_nhat = new Date()
+    // 🔹 Thực hiện cập nhật
     const updated = await db
       .update(schema.nguoi_dung)
       .set(updates)
-      .where(eq(schema.nguoi_dung.ma_nguoi_dung, dbUser.id))
+      .where(eq(schema.nguoi_dung.ma_nguoi_dung, maNguoiDung))
       .returning({
         ma_nguoi_dung: schema.nguoi_dung.ma_nguoi_dung,
-        email: schema.nguoi_dung.email,
+        ho_ten: schema.nguoi_dung.ho_ten,
         ten_dang_nhap: schema.nguoi_dung.ten_dang_nhap,
-        ngay_tao: schema.nguoi_dung.ngay_tao,
+        email: schema.nguoi_dung.email,
         ngay_cap_nhat: schema.nguoi_dung.ngay_cap_nhat,
-      });
+      })
 
-    return NextResponse.json(
-      { message: "Cập nhật thành công!", user: updated[0] },
-      { status: 200 }
-    );
-  } catch (err: unknown) {
-    console.error("Lỗi update:", err)
-    if (err instanceof Error) {
-      return NextResponse.json({ error: err.message }, { status: 500 })
-    }
-    type ClerkError = { errors?: unknown; code?: string };
-    if (err && typeof err === "object") {
-      const e = err as ClerkError;
-      if (e.errors) return NextResponse.json({ error: e.errors }, { status: 422 });
-      if (e.code === "23505") return NextResponse.json({ error: "Giá trị đã tồn tại." }, { status: 409 });
-    }
-    return NextResponse.json({ error: "Có lỗi xảy ra khi cập nhật." }, { status: 500 })
+    return NextResponse.json({ message: "Cập nhật thành công!", user: updated[0] },{ status: 200 })
+  } catch (err) {
+    console.error("❌ Lỗi update:", err)
+    return NextResponse.json({ error: "Có lỗi xảy ra khi cập nhật!" }, { status: 500 })
   }
 }
 
 export async function GET() {
   return NextResponse.json({
     message: "Update API OK",
-    endpoint: "PATCH /api/update",
     expects: {
-      username: "đã lưu tren CLerk + db",
-      fullName: "đã lưu Clerk",
-      currentPassword: "required nếu đổi mật khẩu",
-      newPassword: "optional",
+      username: "Tùy chọn",
+      fullName: "Tùy chọn",
+      currentPassword: "Bắt buộc nếu đổi mật khẩu",
+      newPassword: "Tùy chọn",
     },
-  });
+  })
 }

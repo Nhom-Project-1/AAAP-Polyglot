@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
         subject: "Mã xác thực đăng ký tài khoản",
         text: `Mã xác thực của bạn là: ${code}`,
     });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("❌ Lỗi gửi mail:", err);
       return NextResponse.json({ error: "Email không tồn tại hoặc không gửi được." }, { status: 400 });
     }

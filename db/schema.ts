@@ -7,6 +7,7 @@ export const nguoi_dung = pgTable(
   "nguoi_dung",
   {
     ma_nguoi_dung: serial("ma_nguoi_dung").primaryKey(),
+    ho_ten: varchar("ho_ten", { length: 100 }), 
     ten_dang_nhap: varchar("ten_dang_nhap", { length: 100 }).notNull(),
     email: varchar("email", { length: 150 }).notNull(),
     mat_khau_hash: text("mat_khau_hash").notNull(),

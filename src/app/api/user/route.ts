@@ -1,54 +1,54 @@
-import { NextResponse } from "next/server"
-import { auth, clerkClient } from "@clerk/nextjs/server"
+import { NextRequest, NextResponse } from "next/server"
+import jwt from "jsonwebtoken"
 import db, { schema } from "../../../../db/drizzle"
 import { eq } from "drizzle-orm"
 
-export async function GET() {
+const JWT_SECRET = process.env.JWT_SECRET!
+
+export async function GET(req: NextRequest) {
   try {
-    const { userId } = await auth()
-    if (!userId) {
+    // 🔒 1. Lấy token từ cookie
+    const token = req.cookies.get("token")?.value
+    if (!token) {
       return NextResponse.json({ error: "Chưa đăng nhập" }, { status: 401 })
     }
 
-    const client = await clerkClient()
-    const user = await client.users.getUser(userId)
-
-    const email = user.primaryEmailAddress?.emailAddress?.toLowerCase()
-    if (!email) {
-      return NextResponse.json({ error: "Không tìm thấy email người dùng" }, { status: 400 })
+    // 🧩 2. Giải mã JWT
+    let decoded: string | jwt.JwtPayload
+    try {
+      decoded = jwt.verify(token, JWT_SECRET)
+    } catch (err) {
+      return NextResponse.json({ error: "Token không hợp lệ hoặc đã hết hạn" }, { status: 401 })
     }
 
-    // lấy từ DB
-    const rows = await db
-      .select({
-        id: schema.nguoi_dung.ma_nguoi_dung,
-        ten_dang_nhap: schema.nguoi_dung.ten_dang_nhap,
-        email: schema.nguoi_dung.email,
-        ngay_tao: schema.nguoi_dung.ngay_tao,
-        ngay_cap_nhat: schema.nguoi_dung.ngay_cap_nhat,
-      })
-      .from(schema.nguoi_dung)
-      .where(eq(schema.nguoi_dung.email, email))
-      .limit(1)
-
-    const dbUser = rows[0]
-    if (!dbUser) {
-      return NextResponse.json({ error: "Không tìm thấy người dùng trong DB" }, { status: 404 })
+    console.log("🍪 Token lấy từ cookie:", token)
+    console.log("📦 Decoded token:", decoded)
+    
+    const maNguoiDung = (decoded as jwt.JwtPayload)?.ma_nguoi_dung || (decoded as jwt.JwtPayload)?.userId
+    if (!maNguoiDung) {
+      return NextResponse.json({ error: "Thiếu thông tin người dùng trong token" }, { status: 400 })
     }
 
-    // lấy họ tên từ Clerk (vì DB không có cột họ tên)
-    const fullName = (user.publicMetadata?.fullName as string | undefined) || ""
 
+
+    // 🗄️ 3. Lấy thông tin từ database
+    const user = await db.query.nguoi_dung.findFirst({
+      where: (nguoi_dung, { eq }) => eq(nguoi_dung.ma_nguoi_dung, maNguoiDung),
+    })
+
+    if (!user) {
+      return NextResponse.json({ error: "Không tìm thấy người dùng" }, { status: 404 })
+    }
+
+    // ✅ 4. Trả thông tin user về FE
     return NextResponse.json({
-      id: dbUser.id,
-      fullName,
-      username: dbUser.ten_dang_nhap,
-      email: dbUser.email,
-      createdAt: dbUser.ngay_tao,
-      updatedAt: dbUser.ngay_cap_nhat,
+      id: user.ma_nguoi_dung,
+      fullName: user.ho_ten,
+      username: user.ten_dang_nhap,
+      email: user.email,
     })
   } catch (err) {
-    console.error("Lỗi khi lấy thông tin người dùng:", err)
+    console.error("❌ Lỗi khi lấy thông tin người dùng:", err)
     return NextResponse.json({ error: "Không thể lấy thông tin người dùng" }, { status: 500 })
   }
 }
