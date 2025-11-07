@@ -1,20 +1,29 @@
 'use client'
 
+import { useAuthStore } from '@/lib/store'
+import { useRouter } from 'next/navigation'
 import { Header } from './header'
 import { Footer } from './ui/footer'
-import { useRouter } from 'next/navigation'
-import { useClerk } from '@clerk/nextjs'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
-  const { signOut } = useClerk() 
-
+const {setIsLoggedIn, setUser, setIsAdmin} = useAuthStore()
   const handleLogout = async () => {
     try {
-      await signOut()      
-      router.push('/')     
+      const res = await fetch("/api/logout", {
+        method: "POST",
+        credentials: "include",
+      })
+      setIsLoggedIn(  false)
+      setUser(null)
+      setIsAdmin(false)
+      if (res.ok) {
+        router.push("/") // Sau khi logout thì về trang marketing
+      } else {
+        console.error("Đăng xuất thất bại:", await res.text())
+      }
     } catch (err) {
-      console.error('Đăng xuất thất bại', err)
+      console.error("Lỗi khi đăng xuất:", err)
     }
   }
 

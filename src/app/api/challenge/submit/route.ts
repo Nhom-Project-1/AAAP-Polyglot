@@ -1,35 +1,42 @@
-import { NextResponse } from "next/server";
-import { db } from "../../../../../db/drizzle";
+import { and, count, eq, sql } from 'drizzle-orm';
+import { NextResponse } from 'next/server';
+import { db } from '../../../../../db/drizzle';
 import {
+  cau_tra_loi_nguoi_dung,
   lua_chon_thu_thach,
   thu_thach,
   tien_do,
-  cau_tra_loi_nguoi_dung,
-} from "../../../../../db/schema";
-import { and, eq, count, sql } from "drizzle-orm";
+} from '../../../../../db/schema';
 
 export async function POST(req: Request) {
   try {
-    const { ma_nguoi_dung, ma_bai_hoc, ma_lua_chon, ma_thu_thach } = await req.json();
+    const { ma_nguoi_dung, ma_bai_hoc, ma_lua_chon, ma_thu_thach } =
+      await req.json();
 
     if (!ma_nguoi_dung || !ma_bai_hoc || !ma_lua_chon || !ma_thu_thach) {
-      return NextResponse.json({ error: "Thiếu tham số cần thiết" }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Thiếu tham số cần thiết' },
+        { status: 400 },
+      );
     }
 
     const dapAn = await db.query.lua_chon_thu_thach.findFirst({
       where: and(
         eq(lua_chon_thu_thach.ma_lua_chon, ma_lua_chon),
-        eq(lua_chon_thu_thach.ma_thu_thach, ma_thu_thach)
+        eq(lua_chon_thu_thach.ma_thu_thach, ma_thu_thach),
       ),
       columns: { dung: true },
     });
     if (!dapAn)
-      return NextResponse.json({ error: "Không tìm thấy lựa chọn" }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Không tìm thấy lựa chọn' },
+        { status: 404 },
+      );
 
-    let progress = await db.query.tien_do.findFirst({
+    const progress = await db.query.tien_do.findFirst({
       where: and(
         eq(tien_do.ma_nguoi_dung, ma_nguoi_dung),
-        eq(tien_do.ma_bai_hoc, ma_bai_hoc)
+        eq(tien_do.ma_bai_hoc, ma_bai_hoc),
       ),
       columns: {
         ma_tien_do: true,
@@ -41,8 +48,8 @@ export async function POST(req: Request) {
 
     if (!progress) {
       return NextResponse.json(
-        { error: "Người dùng chưa có tiến độ học cho bài này." },
-        { status: 403 }
+        { error: 'Người dùng chưa có tiến độ học cho bài này.' },
+        { status: 403 },
       );
     }
 
@@ -60,8 +67,8 @@ export async function POST(req: Request) {
       .where(
         and(
           eq(cau_tra_loi_nguoi_dung.ma_bai_hoc, ma_bai_hoc),
-          eq(cau_tra_loi_nguoi_dung.ma_nguoi_dung, ma_nguoi_dung)
-        )
+          eq(cau_tra_loi_nguoi_dung.ma_nguoi_dung, ma_nguoi_dung),
+        ),
       );
     const maxLan = maxLanLamRow[0]?.max_lan ?? 0;
 
@@ -76,8 +83,8 @@ export async function POST(req: Request) {
           and(
             eq(cau_tra_loi_nguoi_dung.ma_bai_hoc, ma_bai_hoc),
             eq(cau_tra_loi_nguoi_dung.ma_nguoi_dung, ma_nguoi_dung),
-            eq(cau_tra_loi_nguoi_dung.lan_lam, maxLan)
-          )
+            eq(cau_tra_loi_nguoi_dung.lan_lam, maxLan),
+          ),
         );
       daLamTrongLanMax = daLamCountMax[0]?.da_lam ?? 0;
     }
@@ -91,7 +98,7 @@ export async function POST(req: Request) {
         eq(cau_tra_loi_nguoi_dung.ma_nguoi_dung, ma_nguoi_dung),
         eq(cau_tra_loi_nguoi_dung.ma_bai_hoc, ma_bai_hoc),
         eq(cau_tra_loi_nguoi_dung.ma_thu_thach, ma_thu_thach),
-        eq(cau_tra_loi_nguoi_dung.lan_lam, lan_lam_hien_tai)
+        eq(cau_tra_loi_nguoi_dung.lan_lam, lan_lam_hien_tai),
       ),
       columns: { id: true, dung: true },
     });
@@ -99,7 +106,7 @@ export async function POST(req: Request) {
     if (daLamCauNay?.dung === true) {
       return NextResponse.json({
         correct: true,
-        message: "Bạn đã trả lời đúng câu này trước đó, không tính thêm điểm.",
+        message: 'Bạn đã trả lời đúng câu này trước đó, không tính thêm điểm.',
         lan_lam: lan_lam_hien_tai,
       });
     }
@@ -108,7 +115,8 @@ export async function POST(req: Request) {
       if (daLamCauNay.dung) {
         return NextResponse.json({
           correct: true,
-          message: "Bạn đã trả lời đúng câu này trước đó, không tính thêm điểm.",
+          message:
+            'Bạn đã trả lời đúng câu này trước đó, không tính thêm điểm.',
           lan_lam: lan_lam_hien_tai,
         });
       }
@@ -121,7 +129,7 @@ export async function POST(req: Request) {
 
           await db
             .update(tien_do)
-            .set({ so_tim_con_lai: 5, trang_thai: "that_bai" })
+            .set({ so_tim_con_lai: 5, trang_thai: 'that_bai' })
             .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
 
           await db.insert(cau_tra_loi_nguoi_dung).values({
@@ -138,19 +146,19 @@ export async function POST(req: Request) {
             message: `Hết tim! Bắt đầu lượt mới với 5 tim.`,
             lan_lam_moi: lanLamMoi,
             so_tim_con_lai: 5,
-            trang_thai: "that_bai",
+            trang_thai: 'that_bai',
             reset: true,
           });
         }
 
         await db
           .update(tien_do)
-          .set({ so_tim_con_lai: newHeart, trang_thai: "dang_hoc" })
+          .set({ so_tim_con_lai: newHeart, trang_thai: 'dang_hoc' })
           .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
 
         return NextResponse.json({
           correct: false,
-          message: "❌ Sai mất rồi. Bạn bị -1 tim.",
+          message: '❌ Sai mất rồi. Bạn bị -1 tim.',
           so_tim_con_lai: newHeart,
           lan_lam: lan_lam_hien_tai,
         });
@@ -163,7 +171,7 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         correct: true,
-        message: "✅ Bạn đã sửa lại và trả lời đúng!",
+        message: '✅ Bạn đã sửa lại và trả lời đúng!',
         lan_lam: lan_lam_hien_tai,
       });
     }
@@ -184,8 +192,8 @@ export async function POST(req: Request) {
         and(
           eq(cau_tra_loi_nguoi_dung.ma_bai_hoc, ma_bai_hoc),
           eq(cau_tra_loi_nguoi_dung.ma_nguoi_dung, ma_nguoi_dung),
-          eq(cau_tra_loi_nguoi_dung.lan_lam, lan_lam_hien_tai)
-        )
+          eq(cau_tra_loi_nguoi_dung.lan_lam, lan_lam_hien_tai),
+        ),
       );
     const soDaLamHienTai = daLamCount[0]?.da_lam ?? 0;
 
@@ -197,14 +205,14 @@ export async function POST(req: Request) {
           eq(cau_tra_loi_nguoi_dung.ma_bai_hoc, ma_bai_hoc),
           eq(cau_tra_loi_nguoi_dung.ma_nguoi_dung, ma_nguoi_dung),
           eq(cau_tra_loi_nguoi_dung.lan_lam, lan_lam_hien_tai),
-          eq(cau_tra_loi_nguoi_dung.dung, true)
-        )
+          eq(cau_tra_loi_nguoi_dung.dung, true),
+        ),
       );
     const soCauDung = dungCount[0]?.so_dung ?? 0;
 
     if (soDaLamHienTai >= total) {
       const newXP = soCauDung * 10;
-      const isSuccess = soCauDung > 0; 
+      const isSuccess = soCauDung > 0;
 
       const maxXPQuery = await db
         .select({
@@ -213,7 +221,7 @@ export async function POST(req: Request) {
         .from(
           db
             .select({
-              so_dung: count(cau_tra_loi_nguoi_dung.id).as("so_dung"),
+              so_dung: count(cau_tra_loi_nguoi_dung.id).as('so_dung'),
               lan_lam: cau_tra_loi_nguoi_dung.lan_lam,
             })
             .from(cau_tra_loi_nguoi_dung)
@@ -221,11 +229,11 @@ export async function POST(req: Request) {
               and(
                 eq(cau_tra_loi_nguoi_dung.ma_bai_hoc, ma_bai_hoc),
                 eq(cau_tra_loi_nguoi_dung.ma_nguoi_dung, ma_nguoi_dung),
-                eq(cau_tra_loi_nguoi_dung.dung, true)
-              )
+                eq(cau_tra_loi_nguoi_dung.dung, true),
+              ),
             )
             .groupBy(cau_tra_loi_nguoi_dung.lan_lam)
-            .as("sub")
+            .as('sub'),
         );
 
       const maxXP = Number(maxXPQuery[0]?.max_xp ?? newXP);
@@ -233,13 +241,13 @@ export async function POST(req: Request) {
       await db
         .update(tien_do)
         .set({
-          diem_kinh_nghiem: isSuccess ? maxXP : progress.diem_kinh_nghiem, 
-          trang_thai: isSuccess ? "hoan_thanh" : "that_bai", 
+          diem_kinh_nghiem: isSuccess ? maxXP : progress.diem_kinh_nghiem,
+          trang_thai: isSuccess ? 'hoan_thanh' : 'that_bai',
           so_tim_con_lai: 5,
         })
         .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
 
-      const percent = total > 0 ? ((soCauDung / total) * 100).toFixed(0) : "0";
+      const percent = total > 0 ? ((soCauDung / total) * 100).toFixed(0) : '0';
 
       return NextResponse.json({
         correct: dapAn.dung,
@@ -255,10 +263,10 @@ export async function POST(req: Request) {
     }
 
     if (dapAn.dung) {
-      if (progress.trang_thai === "that_bai") {
+      if (progress.trang_thai === 'that_bai') {
         await db
           .update(tien_do)
-          .set({ trang_thai: "dang_hoc" })
+          .set({ trang_thai: 'dang_hoc' })
           .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
       }
 
@@ -275,7 +283,7 @@ export async function POST(req: Request) {
 
       await db
         .update(tien_do)
-        .set({ so_tim_con_lai: 5, trang_thai: "that_bai" })
+        .set({ so_tim_con_lai: 5, trang_thai: 'that_bai' })
         .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
 
       await db.insert(cau_tra_loi_nguoi_dung).values({
@@ -292,24 +300,27 @@ export async function POST(req: Request) {
         message: `Hết tim! Bắt đầu lượt mới với 5 tim.`,
         lan_lam_moi: lanLamMoi,
         so_tim_con_lai: 5,
-        trang_thai: "that_bai",
+        trang_thai: 'that_bai',
         reset: true,
       });
     }
 
     await db
       .update(tien_do)
-      .set({ so_tim_con_lai: newHeart, trang_thai: "dang_hoc" })
+      .set({ so_tim_con_lai: newHeart, trang_thai: 'dang_hoc' })
       .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
 
     return NextResponse.json({
       correct: false,
-      message: "Sai mất rồi. Bạn bị -1 tim.",
+      message: 'Sai mất rồi. Bạn bị -1 tim.',
       so_tim_con_lai: newHeart,
       lan_lam: lan_lam_hien_tai,
     });
   } catch (error) {
-    console.error("Lỗi khi xử lý câu trả lời:", error);
-    return NextResponse.json({ error: "Lỗi khi xử lý câu trả lời" }, { status: 500 });
+    console.error('Lỗi khi xử lý câu trả lời:', error);
+    return NextResponse.json(
+      { error: 'Lỗi khi xử lý câu trả lời' },
+      { status: 500 },
+    );
   }
 }

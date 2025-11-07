@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { clerkClient } from "@clerk/nextjs/server";
 import db, { schema } from "../../../../../db/drizzle";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
+
+interface DecodedToken extends jwt.JwtPayload {
+  email: string;
+  password: string;
+  fullName: string;
+  username: string;
+  code: string;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,11 +23,11 @@ export async function POST(req: NextRequest) {
     if (!token || !userCode)
       return NextResponse.json({ error: "Thiếu token hoặc mã xác thực." }, { status: 400 });
 
-    let decoded: any;
+    let decoded: DecodedToken;
      try {
-      decoded = jwt.verify(token, JWT_SECRET) as any;
-    } catch (err: any) {
-      if (err.name === "TokenExpiredError") {
+      decoded = jwt.verify(token, JWT_SECRET) as DecodedToken;
+    } catch (err: unknown) {
+      if ((err as Error).name === "TokenExpiredError") {
         return NextResponse.json(
           { error: "Mã xác thực đã hết hạn. Vui lòng đăng ký lại." },
           { status: 400 }
@@ -48,55 +55,50 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    
-    const client = await clerkClient();
-    const firstName = fullName.split(" ")[0] || fullName;
-    const lastName = fullName.split(" ").slice(1).join(" ") || "";
-
-    const user = await client.users.createUser({
-      emailAddress: [email],
-      password,
-      username,
-      firstName,
-      lastName,
-      publicMetadata: { fullName, username },
-    });
 
     const hashed = await bcrypt.hash(password, 10);
-    await db.insert(schema.nguoi_dung).values({
-      ten_dang_nhap: username,
-      email,
-      mat_khau_hash: hashed,
-    });
+    const [newUser] = await db
+      .insert(schema.nguoi_dung)
+      .values({
+        ten_dang_nhap: username,
+        email,
+        mat_khau_hash: hashed,
+        ho_ten: fullName,
+      })
+      .returning();
 
-    const existingUser = await db.query.nguoi_dung.findFirst({
-    where: (nguoi_dung, { eq }) =>
-      eq(nguoi_dung.email, user.emailAddresses?.[0]?.emailAddress),
-  })
-    if (!existingUser)
-      return NextResponse.json({ error: "Không tìm thấy người dùng trong DB" }, { status: 404 })
-
-    const authToken = jwt.sign({
-      userId: user.id,
-      ma_nguoi_dung: existingUser.ma_nguoi_dung
-    }, JWT_SECRET, { expiresIn: "7d" })
+     const authToken = jwt.sign(
+      {
+        userId: newUser.ma_nguoi_dung,
+        username,
+        email,
+      },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
     const response = NextResponse.json({
       message: "Đăng ký thành công!",
-      userId: user.id,
-      timestamp: new Date().toISOString(),
+      user: {
+        id: newUser.ma_nguoi_dung,
+        username,
+        email,
+        fullName,
+      },
     });
+
     response.cookies.set("token", authToken, {
-      httpOnly: true, 
-      secure: process.env.NODE_ENV === "production", 
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       path: "/",
-      maxAge: 7 * 24 * 60 * 60, 
+      maxAge: 7 * 24 * 60 * 60, // 7 ngày
     });
+
     return response;
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("❌ Lỗi verify:", err);
-    if (err.name === "TokenExpiredError") {
+    if ((err as Error).name === "TokenExpiredError") {
       return NextResponse.json({ error: "Mã xác thực đã hết hạn. Vui lòng đăng ký lại." }, { status: 400 });
     }
     return NextResponse.json({ error: "Có lỗi xảy ra khi xác thực tài khoản." }, { status: 500 });

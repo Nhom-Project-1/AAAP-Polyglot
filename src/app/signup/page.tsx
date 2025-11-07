@@ -20,7 +20,7 @@
 
     const handleSignUp = async (e: React.FormEvent) => {
       e.preventDefault()
-      setIsLoading(true)
+      setIsLoading(false)
 
       try {
         const res = await fetch("/api/signup", {
@@ -56,6 +56,7 @@
         const res = await fetch("/api/signup/verify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
             token, 
             code: verificationCode,
@@ -101,7 +102,7 @@
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full border border-pink-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus: ring-pink-300 focus:border-pink-300"
+              className="w-full border border-pink-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300"
               disabled={showVerification}
             />
           </div>
@@ -112,7 +113,7 @@
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full border border-pink-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus: ring-pink-300 focus:border-pink-300"
+              className="w-full border border-pink-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300"
               disabled={showVerification}
             />
           </div>
@@ -123,7 +124,7 @@
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-pink-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus: ring-pink-300 focus:border-pink-300"
+              className="w-full border border-pink-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300"
               disabled={showVerification}
             />
           </div>
@@ -135,7 +136,7 @@
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full border border-pink-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus: ring-pink-300 focus:border-pink-300"
+                className="w-full border border-pink-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300"
                 disabled={showVerification}
               />
               <button
@@ -159,7 +160,7 @@
                 type="text"
                 value={verificationCode}
                 onChange={(e) => setVerificationCode(e.target.value)}
-                className="w-full border border-pink-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus: ring-pink-300 focus:border-pink-300"
+                className="w-full border border-pink-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300"
               />
               {verificationError && (
                 <p className="text-red-500 text-xs mt-1">{verificationError}</p>
