@@ -18,9 +18,7 @@ export const nguoi_dung = pgTable(
     email: varchar('email', { length: 150 }).notNull(),
     mat_khau_hash: text('mat_khau_hash').notNull(),
     ngay_tao: timestamp('ngay_tao', { withTimezone: false }).defaultNow(),
-    ngay_cap_nhat: timestamp('ngay_cap_nhat', {
-      withTimezone: false,
-    }).defaultNow(),
+    ngay_cap_nhat: timestamp('ngay_cap_nhat', {withTimezone: false,}).defaultNow(),
     ho_ten: varchar('ho_ten', { length: 150 }),
   },
   (t) => ({
