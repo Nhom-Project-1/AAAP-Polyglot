@@ -1,21 +1,40 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import db from "../../../../db/drizzle"
 import { ngon_ngu } from "../../../../db/schema"
 import { assertAdmin } from "../../../../lib/auth"
-import { eq } from "drizzle-orm"
+import { ilike, eq, or } from "drizzle-orm"
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const data = await db.select().from(ngon_ngu)
-    return NextResponse.json(data)
+    const sp = new URL(req.url).searchParams;
+    const q = sp.get("q")?.trim() || "";
+
+    let data;
+
+    if (q) {
+      data = await db
+        .select()
+        .from(ngon_ngu)
+        .where(
+          or(
+            ilike(ngon_ngu.ten_ngon_ngu, `%${q}%`),
+            ilike(ngon_ngu.mo_ta, `%${q}%`)
+          )
+        );
+    } else {
+      data = await db.select().from(ngon_ngu);
+    }
+
+    return NextResponse.json(data);
   } catch (error) {
-    console.error("lỗi khi lấy dữ liệu ngôn ngữ:", error)
+    console.error("❌ Lỗi khi lấy dữ liệu ngôn ngữ:", error);
     return NextResponse.json(
-      { message: "không thể lấy dữ liệu ngôn ngữ" },
+      { message: "Không thể lấy dữ liệu ngôn ngữ" },
       { status: 500 }
-    )
+    );
   }
 }
+
 
 export async function POST(req: Request) {
   try {
