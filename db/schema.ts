@@ -36,15 +36,6 @@ export const admin = pgTable(
   })
 );
 
-
-export const quan_ly_nguoi_dung = pgTable("quan_ly_nguoi_dung", {
-  ma_quan_ly: serial("ma_quan_ly").primaryKey(),
-  ma_admin: integer("ma_admin").references(() => admin.ma_admin, { onDelete: "cascade" }),
-  ma_nguoi_dung: integer("ma_nguoi_dung").references(() => nguoi_dung.ma_nguoi_dung, { onDelete: "cascade" }),
-  hanh_dong: varchar("hanh_dong", { length: 100 }), 
-  thoi_gian: timestamp("thoi_gian", { withTimezone: false }).defaultNow(),
-});
-
 export const ngon_ngu = pgTable("ngon_ngu", {
   ma_ngon_ngu: serial("ma_ngon_ngu").primaryKey(),
   ten_ngon_ngu: varchar("ten_ngon_ngu", { length: 100 }).notNull(),
