@@ -211,56 +211,80 @@ export async function POST(req: Request) {
     const soCauDung = dungCount[0]?.so_dung ?? 0;
 
     if (soDaLamHienTai >= total) {
-      const newXP = soCauDung * 10;
-      const isSuccess = soCauDung > 0;
+    const newXP = soCauDung * 10;
+    const isSuccess = soCauDung > 0;
 
-      const maxXPQuery = await db
-        .select({
-          max_xp: sql<number>`MAX(sub.so_dung * 10)`.mapWith(Number),
-        })
-        .from(
-          db
-            .select({
-              so_dung: count(cau_tra_loi_nguoi_dung.id).as('so_dung'),
-              lan_lam: cau_tra_loi_nguoi_dung.lan_lam,
-            })
-            .from(cau_tra_loi_nguoi_dung)
-            .where(
-              and(
-                eq(cau_tra_loi_nguoi_dung.ma_bai_hoc, ma_bai_hoc),
-                eq(cau_tra_loi_nguoi_dung.ma_nguoi_dung, ma_nguoi_dung),
-                eq(cau_tra_loi_nguoi_dung.dung, true),
-              ),
+    // lấy XP cao nhất từ tất cả các lượt trước
+    const maxXPQuery = await db
+      .select({
+        max_xp: sql<number>`MAX(sub.so_dung * 10)`.mapWith(Number),
+      })
+      .from(
+        db
+          .select({
+            so_dung: count(cau_tra_loi_nguoi_dung.id).as('so_dung'),
+            lan_lam: cau_tra_loi_nguoi_dung.lan_lam,
+          })
+          .from(cau_tra_loi_nguoi_dung)
+          .where(
+            and(
+              eq(cau_tra_loi_nguoi_dung.ma_bai_hoc, ma_bai_hoc),
+              eq(cau_tra_loi_nguoi_dung.ma_nguoi_dung, ma_nguoi_dung),
+              eq(cau_tra_loi_nguoi_dung.dung, true)
             )
-            .groupBy(cau_tra_loi_nguoi_dung.lan_lam)
-            .as('sub'),
-        );
+          )
+          .groupBy(cau_tra_loi_nguoi_dung.lan_lam)
+          .as('sub')
+      );
 
-      const maxXP = Number(maxXPQuery[0]?.max_xp ?? newXP);
+    const maxXP = Number(maxXPQuery[0]?.max_xp ?? newXP);
+    const isNewMax = newXP > maxXP; // lượt hiện tại cao hơn max cũ?
 
+    // update XP nếu cần
+    if (isSuccess && isNewMax) {
       await db
         .update(tien_do)
         .set({
-          diem_kinh_nghiem: isSuccess ? maxXP : progress.diem_kinh_nghiem,
-          trang_thai: isSuccess ? 'hoan_thanh' : 'that_bai',
+          diem_kinh_nghiem: newXP,
+          trang_thai: 'hoan_thanh',
           so_tim_con_lai: 5,
         })
         .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
-
-      const percent = total > 0 ? ((soCauDung / total) * 100).toFixed(0) : '0';
-
-      return NextResponse.json({
-        correct: dapAn.dung,
-        message: isSuccess
-          ? `Hoàn thành lượt ${lan_lam_hien_tai}! Đúng ${soCauDung}/${total} câu (${percent}%) → +${newXP} XP.`
-          : `Bạn sai hết ${total} câu → thất bại, không được XP.`,
-        lan_lam: lan_lam_hien_tai,
-        hoan_thanh: isSuccess,
-        diem_moi: isSuccess ? maxXP : progress.diem_kinh_nghiem,
-        so_tim_con_lai: 5,
-        lan_tiep_theo: lan_lam_hien_tai + 1,
-      });
+    } else if (isSuccess) {
+      await db
+        .update(tien_do)
+        .set({ trang_thai: 'hoan_thanh', so_tim_con_lai: 5 })
+        .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
+    } else {
+      await db
+        .update(tien_do)
+        .set({ trang_thai: 'that_bai', so_tim_con_lai: 5 })
+        .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
     }
+
+    const percent = total > 0 ? ((soCauDung / total) * 100).toFixed(0) : '0';
+
+    let message = '';
+    if (lan_lam_hien_tai === 1) {
+      message = `Hoàn thành thử thách! Đúng ${soCauDung}/${total} câu (${percent}%) → +${newXP} XP.`;
+    } else {
+      if (isNewMax) {
+        const newCorrect = newXP / 10 - maxXP / 10;
+        message = `Bạn làm lại lần thứ ${lan_lam_hien_tai}, đúng thêm ${newCorrect} câu, được cộng ${newXP - maxXP} XP!`;
+      } else {
+        message = `Bạn làm lại lần thứ ${lan_lam_hien_tai} và đúng ${soCauDung}/${total} câu, XP không thay đổi.`;
+      }
+    }
+
+    return NextResponse.json({
+      correct: dapAn.dung,
+      message,
+      hoan_thanh: isSuccess,
+      diem_moi: isSuccess ? Math.max(newXP, maxXP) : progress.diem_kinh_nghiem,
+      so_tim_con_lai: 5,
+      lan_tiep_theo: lan_lam_hien_tai + 1,
+    });
+  }
 
     if (dapAn.dung) {
       if (progress.trang_thai === 'that_bai') {
@@ -297,9 +321,9 @@ export async function POST(req: Request) {
 
       return NextResponse.json({
         correct: false,
-        message: `Hết tim! Bắt đầu lượt mới với 5 tim.`,
+        message: `Bạn đã hết tim. Hãy bắt đầu lại thử thách với 5 tim.`,
         lan_lam_moi: lanLamMoi,
-        so_tim_con_lai: 5,
+        so_tim_con_lai: 0,
         trang_thai: 'that_bai',
         reset: true,
       });

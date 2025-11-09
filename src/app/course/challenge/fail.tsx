@@ -1,17 +1,41 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import {Button} from "@/components/ui/button"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
 
 interface FailModalProps {
   show: boolean
-  onClose: () => void
   onRestart: () => void
 }
 
-export default function FailModal({ show, onClose, onRestart }: FailModalProps) {
-  if (!show) return null
+export default function FailModal({ show, onRestart }: FailModalProps) {
+  const router = useRouter()
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  if (!show || !isClient) return null
+
   const MotionButton = motion(Button)
+
+  const handleExit = async () => {
+    try {
+      const res = await fetch("/api/user-language", { method: "GET", credentials: "include" })
+      const data = await res.json()
+      if (res.ok && data.current?.id) {
+        router.push(`/course?lang=${data.current.id}`)
+      } else {
+        router.push("/login")
+      }
+    } catch (err) {
+      router.push("/login")
+    }
+  }
+
   return (
     <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
       <motion.div
@@ -32,25 +56,26 @@ export default function FailModal({ show, onClose, onRestart }: FailModalProps) 
         <h2 className="text-3xl font-bold text-red-500 mb-2">Hết tim rồi</h2>
         <p className="text-gray-600 mb-6">Bạn đã cố gắng rất nhiều, thử lại nhé!</p>
 
-        <div className="flex justify-center gap-15">
-            <MotionButton
-                variant="default"
-                whileTap={{ scale: 0.95 }}
-                whileHover={{ scale: 1.05 }}
-                onClick={onClose}
-                className="px-6 py-3 text-lg rounded-lg cursor-pointer"
-            >
-                Thoát
-            </MotionButton>
-            <MotionButton
-                variant="secondary"
-                whileTap={{ scale: 0.95 }}
-                whileHover={{ scale: 1.05 }}
-                onClick={onRestart}
-                className="px-6 py-3 text-lg rounded-lg cursor-pointer"
-            >
-                Làm lại
-            </MotionButton>
+        <div className="flex justify-center gap-10">
+          <MotionButton
+            variant="default"
+            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.05 }}
+            onClick={handleExit}
+            className="px-6 py-3 text-lg rounded-lg cursor-pointer"
+          >
+            Thoát
+          </MotionButton>
+
+          <MotionButton
+            variant="secondary"
+            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.05 }}
+            onClick={onRestart}
+            className="px-6 py-3 text-lg rounded-lg cursor-pointer"
+          >
+            Làm lại
+          </MotionButton>
         </div>
       </motion.div>
     </div>

@@ -14,7 +14,6 @@ type Lang = {
   const router = useRouter()
   const [lang, setLang] = useState<Lang | null>(null)
   const score = 36
-  const streak = 36
 
   useEffect(() => {
     const fetchLang = async () => {
@@ -69,14 +68,6 @@ type Lang = {
         <img src="/star.png" alt="Score" className="w-6 h-7 object-contain" />
         <span className="text-lg font-semibold text-yellow-400 leading-none">
           {score}
-        </span>
-      </div>
-
-      {/* Chuỗi */}
-      <div className="flex items-center gap-1">
-        <img src="/fire.png" alt="Streak" className="w-6 h-5 object-contain" />
-        <span className="text-lg font-semibold text-orange-300 leading-none">
-          {streak}
         </span>
       </div>
     </div>

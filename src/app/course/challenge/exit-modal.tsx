@@ -6,15 +6,18 @@ import { useState } from "react";
 interface ExitModalProps {
   show: boolean;
   onClose: () => void;
+  onResetProgress?: () => void; 
 }
 
-export default function ExitModal({ show, onClose }: ExitModalProps) {
+export default function ExitModal({ show, onClose, onResetProgress }: ExitModalProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   if (!show) return null;
+
   const handleConfirm = async () => {
     try {
       setLoading(true)
+      onResetProgress?.()
       const res = await fetch("/api/user-language", {
         method: "GET",
         credentials: "include",
@@ -33,11 +36,12 @@ export default function ExitModal({ show, onClose }: ExitModalProps) {
       setLoading(false)
     }
   }
+
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black/20 z-50">
       <div className="bg-white p-10 rounded-xl shadow-xl w-96">
         <p className="mb-6 text-center text-lg font-medium">
-          Bạn chắc chắn muốn thoát?
+          Bạn chắc chắn muốn thoát? Mọi tiến độ chưa lưu sẽ bị mất.
         </p>
         <div className="flex justify-between">
           <Button variant="default" className="px-6 py-3 text-lg rounded-lg cursor-pointer" onClick={onClose}>

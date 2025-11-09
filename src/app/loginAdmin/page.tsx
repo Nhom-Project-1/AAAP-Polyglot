@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import Loading from "@/components/ui/loading"
 import { useAuthStore } from "@/lib/store";
 
 export default function LoginAdminPage() {
@@ -73,8 +72,6 @@ export default function LoginAdminPage() {
     }
   }
 
-  //if (isLoading || checkingRedirect) return <Loading />
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-white-50">
       <div className="w-full max-w-md bg-gray p-8 rounded-2xl shadow-md">
@@ -120,10 +117,6 @@ export default function LoginAdminPage() {
 
           {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
 
-          {/* <div className="flex justify-center"> */}
-            {/* <Button variant="secondary" className="px-8 py-3 w-40 cursor-pointer" type="submit">
-              Đăng nhập
-            </Button> */}
             <Button
               variant="secondary"
               className="w-40 mx-auto flex justify-center items-center gap-2 cursor-pointer"

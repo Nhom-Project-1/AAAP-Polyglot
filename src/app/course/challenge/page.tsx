@@ -1,120 +1,162 @@
-"use client";
+"use client"
+import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
+import Quiz from "./quiz"
+import Footer from "./challenge-footer"
+import Header from "./challenge-header"
+import ExitModal from "./exit-modal"
+import CongratModal from "./congrat"
+import FailModal from "./fail"
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Header from "./challenge-header";
-import Footer from "./challenge-footer";
-import Quiz from "./quiz";
-import { mockChallenge } from "./quiz";
-import CongratModal from "./congrat";
-import ExitModal from "./exit-modal";
-import FailModal from "./fail";
+type LuaChonThuThach = {
+  ma_lua_chon: number
+  ma_thu_thach: number
+  noi_dung: string
+  dung: boolean
+}
 
-export default function ChallengePage() {
-  const router = useRouter();
-  const [progress, setProgress] = useState(0);
-  const [hearts, setHearts] = useState(5);
-  const [showModal, setShowModal] = useState(false);
-  const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
-  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
-  const [showResult, setShowResult] = useState(false);
-  const [current, setCurrent] = useState(0);
-  const [checked, setChecked] = useState(false); 
-  const [showCongrat, setShowCongrat] = useState(false);
+type Challenge = {
+  ma_thu_thach: number
+  ma_bai_hoc: number
+  cau_hoi: string
+  loai_thu_thach: string
+  lua_chon_thu_thach: LuaChonThuThach[]
+  hinh_anh?: string
+}
+
+export default function ChallengePageWrapper() {
+  const searchParams = useSearchParams()
+  const maBaiHoc = Number(searchParams.get("id"))
+  if (!maBaiHoc) return <p>Không tìm thấy bài học</p>
+  return <ChallengePage maBaiHoc={maBaiHoc} />
+}
+
+function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
+  const [challengeIds, setChallengeIds] = useState<number[]>([])
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [currentChallenge, setCurrentChallenge] = useState<Challenge | null>(null)
+  const [selectedChoice, setSelectedChoice] = useState<number | null>(null)
+  const [hearts, setHearts] = useState(5)
+  const [maNguoiDung, setMaNguoiDung] = useState<number | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [showExitModal, setShowExitModal] = useState(false)
+  const [showCongrats, setShowCongrats] = useState(false)
+  const [diemMoi, setDiemMoi] = useState<number>(0)
+  const [footerResetKey, setFooterResetKey] = useState(0)
   const [showFail, setShowFail] = useState(false)
-  const currentQuestion = mockChallenge[current];
+  const [isOutOfHearts, setIsOutOfHearts] = useState(false)
+  // lấy user
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const res = await fetch("/api/user")
+        const data = await res.json()
+        if (data.id) setMaNguoiDung(data.id)
+      } catch (err) {
+        console.error("Không lấy được user:", err)
+      }
+    }
+    fetchUser()
+  }, [])
+
+  // lấy danh sách challenge
+  useEffect(() => {
+    async function fetchChallengeIds() {
+      if (!maBaiHoc) return
+      try {
+        const res = await fetch(`/api/challenge?ma_bai_hoc=${maBaiHoc}`)
+        const data = await res.json()
+        if (data.challenges) {
+          const ids = data.challenges.map((c: any) => c.ma_thu_thach)
+          setChallengeIds(ids)
+        }
+      } catch (err) {
+        console.error("Lấy danh sách thử thách thất bại:", err)
+      }
+    }
+    fetchChallengeIds()
+  }, [maBaiHoc])
+
+  // lấy chi tiết thử thách hiện tại
+  useEffect(() => {
+    async function fetchChallengeDetail() {
+      if (challengeIds.length === 0) return
+      const id = challengeIds[currentIndex]
+      try {
+        const res = await fetch(`/api/challenge/${id}`)
+        const data = await res.json()
+        if (data.challenge) setCurrentChallenge(data.challenge)
+      } catch (err) {
+        console.error("Lấy chi tiết thử thách thất bại:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchChallengeDetail()
+  }, [challengeIds, currentIndex])
+
+  useEffect(() => {
+    if (isOutOfHearts) {
+      setShowFail(true)
+    }
+  }, [isOutOfHearts])
+
+  if (loading) return <p>Đang tải thử thách...</p>
+  if (!currentChallenge) return <p>Không có thử thách</p>
 
   const handleSelect = (id: number) => {
-      setSelectedChoice(id);
-    };
-
-  const handleCheck = () => {
-    if (selectedChoice === null) return;
-    const selected = currentQuestion.lua_chon.find(
-      (c) => c.ma_lua_chon === selectedChoice
-    );
-    const correct = selected?.dung ?? false;
-    setIsCorrect(correct);
-    setShowResult(true);
-    setChecked(true);
-    setProgress((p) => Math.min(p + 1 / mockChallenge.length, 1));
-    if (!correct) {
-      setHearts((h) => {
-        const newHearts = Math.max(h - 1, 0)
-        if (newHearts === 0) {
-          setTimeout(() => {
-            setShowFail(true)
-          }, 800) 
-        }
-        return newHearts
-      })
-    }
-  };
-
-  const handleContinue = () => {
-    if (current < mockChallenge.length - 1) {
-      setCurrent((c) => c + 1);
-      setSelectedChoice(null);
-      setShowResult(false);
-      setIsCorrect(null);
-      setChecked(false);
-    } else {
-      setShowCongrat(true);
-    }
-  };
-
-  const resetChallenge = () => {
-    setCurrent(0)
-    setProgress(0)
-    setHearts(5)
-    setSelectedChoice(null)
-    setShowResult(false)
-    setIsCorrect(null)
-    setChecked(false)
-    setShowCongrat(false)
+    setSelectedChoice(id)
   }
 
-   return (
-    <div className="flex flex-col min-h-screen bg-white text-gray-900 relative">
-      <Header progress={progress} hearts={hearts} onExitClick={() => setShowModal(true)} />
-      
-      <Quiz
-         onSelect={handleSelect}
-        showResult={showResult}
-        selected={selectedChoice}
-        current={current}
-      />
+    const handleContinue = () => {
+      if (isOutOfHearts) return 
+      setSelectedChoice(null)
+      if (currentIndex + 1 < challengeIds.length) {
+        setCurrentIndex(currentIndex + 1)
+      } else {
+        setShowCongrats(true)
+      }
+    }
 
-      <Footer
-        onCheck={handleCheck}
-        onContinue={handleContinue}
-        result={showResult ? isCorrect : null}
-        checked={checked}
-        hasSelected={selectedChoice !== null}
-      />
+  const handleRestartChallenge = () => {
+    setSelectedChoice(null)
+    setCurrentIndex(0)
+    setDiemMoi(0)
+    setFooterResetKey(prev => prev + 1)
+    setHearts(5)
+    setIsOutOfHearts(false)
+    setShowFail(false)
+    setShowCongrats(false)
+  }
 
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Header progress={currentIndex / challengeIds.length} hearts={hearts} onExitClick={() => setShowExitModal(true)} />
       <ExitModal
-        show={showModal}
-        onClose={() => setShowModal(false)}
+        show={showExitModal}
+        onClose={() => setShowExitModal(false)}
+        onResetProgress={handleRestartChallenge} 
       />
-      <CongratModal
-        show={showCongrat}
-        onRestart={resetChallenge}
-      />
-      <FailModal
-        show={showFail}
-        onClose={() => {
-          const langData = localStorage.getItem("selectedLang")
-          if (langData) {
-            const langId = JSON.parse(langData).id
-            router.push(`/course?lang=${langId}`)
-          }
-        }}
-        onRestart={() => {
-          resetChallenge()
-          setShowFail(false)
-        }}
-      />
+      <CongratModal show={showCongrats} diemMoi={diemMoi} onRestart={handleRestartChallenge} />
+      <Quiz challenge={currentChallenge} onSelect={handleSelect} selected={selectedChoice} showResult={false} />
+      {maNguoiDung && currentChallenge && (
+        <Footer
+          key={footerResetKey}
+          maNguoiDung={maNguoiDung}
+          maBaiHoc={maBaiHoc}
+          maThuThach={currentChallenge.ma_thu_thach}
+          luaChonDaChon={selectedChoice}
+          hearts={hearts}
+          isOutOfHearts={isOutOfHearts}
+          onUpdateHearts={(val) => {
+            setHearts(val)
+            if (val === 0) setIsOutOfHearts(true)
+          }}
+          onComplete={(xp) => setDiemMoi(xp)}
+          onContinue={handleContinue}
+        />
+      )}
+      <FailModal show={showFail} onRestart={handleRestartChallenge} />
     </div>
-  );
+  )
 }
