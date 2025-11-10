@@ -10,11 +10,19 @@ type Lang = {
   code: string
 }
 
- export default function UserProgress() {
+type TienDo = {
+  ma_bai_hoc: number
+  diem_kinh_nghiem: number
+}
+
+type UserProgressProps = {
+  initialScore?: number;
+}
+
+ export default function UserProgress({ initialScore }: UserProgressProps) {
   const router = useRouter()
   const [lang, setLang] = useState<Lang | null>(null)
-  const score = 36
-  const streak = 36
+  const [score, setScore] = useState(initialScore ?? 0)
 
   useEffect(() => {
     const fetchLang = async () => {
@@ -43,40 +51,52 @@ type Lang = {
       }
     }
 
-    fetchLang()
-  }, [])
+    // Chỉ fetch XP nếu không được cung cấp từ props
+    if (initialScore === undefined) {
+      const fetchTotalXP = async () => {
+        try {
+          const res = await fetch("/api/total-xp");
+          if (!res.ok) {
+            throw new Error("Không thể lấy tổng điểm XP");
+          }
+          const data = await res.json();
+          setScore(data.totalXP ?? 0);
+        } catch (error) {
+          console.error("Lỗi khi lấy tổng điểm XP:", error);
+        }
+      };
+      fetchTotalXP();
+    } else {
+      // Nếu initialScore được cung cấp, cập nhật state ngay lập tức
+      setScore(initialScore);
+    }
 
-  if (!lang) return null
+    fetchLang()
+  }, [initialScore]);
 
   return (
     <div className="flex items-center gap-10 p-3 rounded-xl">
-      {/* Cờ */}
+      {/* cờ ngôn ngữ */}
       <div
         className="flex items-center gap-2 cursor-pointer hover:scale-105 transition-transform"
         onClick={() => router.push("/course/choose")}
       >
-        <div className="w-10 h-7 rounded-lg overflow-hidden">
-          <ReactCountryFlag
-            countryCode={lang.code}
-            svg
-            style={{ width: "100%", height: "100%" }}
-          />
+        <div className="w-10 h-7 rounded-lg overflow-hidden bg-gray-200 flex items-center justify-center">
+          {lang ? (
+            <ReactCountryFlag
+              countryCode={lang.code}
+              svg
+              style={{ width: "100%", height: "100%" }}
+            />
+          ) : null}
         </div>
       </div>
 
-      {/* Điểm */}
+      {/* tổng XP người dùng */}
       <div className="flex items-center gap-1">
         <img src="/star.png" alt="Score" className="w-6 h-7 object-contain" />
         <span className="text-lg font-semibold text-yellow-400 leading-none">
           {score}
-        </span>
-      </div>
-
-      {/* Chuỗi */}
-      <div className="flex items-center gap-1">
-        <img src="/fire.png" alt="Streak" className="w-6 h-5 object-contain" />
-        <span className="text-lg font-semibold text-orange-300 leading-none">
-          {streak}
         </span>
       </div>
     </div>

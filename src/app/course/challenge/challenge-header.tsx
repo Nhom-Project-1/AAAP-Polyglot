@@ -1,11 +1,11 @@
-"use client";
-import { motion, AnimatePresence } from "framer-motion";
-import { Heart, ArrowLeft } from "lucide-react";
+"use client"
+import { motion, AnimatePresence } from "framer-motion"
+import { Heart, ArrowLeft } from "lucide-react"
 
 interface HeaderProps {
-  progress: number;
-  hearts: number;
-  onExitClick: () => void;
+  progress: number
+  hearts: number
+  onExitClick: () => void
 }
 
 export default function Header({ progress, hearts, onExitClick }: HeaderProps) {
@@ -40,46 +40,30 @@ export default function Header({ progress, hearts, onExitClick }: HeaderProps) {
           transition={{ duration: 0.6 }}
           className="relative"
         >
-          {/* trái tim */}
           <Heart
             className={`drop-shadow-sm transition-colors duration-500 ${
-              hearts > 0
-                ? "fill-pink-500 stroke-none"
-                : "fill-gray-300 stroke-gray-400"
+              hearts > 0 ? "fill-pink-500 stroke-none" : "fill-gray-300 stroke-gray-400"
             }`}
             size={32}
           />
-
-          {/* hiệu ứng vỡ khi hết tim */}
           {hearts === 0 && (
             <div className="absolute inset-0 pointer-events-none">
               {[...Array(10)].map((_, i) => {
-                const angle = (i / 10) * Math.PI * 2;
-                const dx = Math.cos(angle) * (20 + Math.random() * 10);
-                const dy = Math.sin(angle) * (20 + Math.random() * 10);
-                const delay = Math.random() * 0.2;
+                const angle = (i / 10) * Math.PI * 2
+                const dx = Math.cos(angle) * (20 + Math.random() * 10)
+                const dy = Math.sin(angle) * (20 + Math.random() * 10)
+                const delay = Math.random() * 0.2
 
                 return (
                   <motion.div
                     key={i}
                     className="absolute top-1/2 left-1/2 w-2 h-2 bg-pink-400 rounded-sm shadow-[0_0_8px_rgba(249,168,212,0.8)]"
-                    style={{
-                      transform: "translate(-50%, -50%)",
-                    }}
+                    style={{ transform: "translate(-50%, -50%)" }}
                     initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
-                    animate={{
-                      x: dx,
-                      y: dy,
-                      opacity: [1, 0.8, 0],
-                      scale: [1, 0.8, 0.4],
-                    }}
-                    transition={{
-                      duration: 1.2,
-                      delay,
-                      ease: "easeOut",
-                    }}
+                    animate={{ x: dx, y: dy, opacity: [1, 0.8, 0], scale: [1, 0.8, 0.4] }}
+                    transition={{ duration: 1.2, delay, ease: "easeOut" }}
                   />
-                );
+                )
               })}
             </div>
           )}
@@ -94,9 +78,7 @@ export default function Header({ progress, hearts, onExitClick }: HeaderProps) {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 10, opacity: 0 }}
               transition={{ duration: 0.25 }}
-              className={`absolute inset-0 ${
-                hearts > 0 ? "text-pink-600" : "text-gray-400"
-              }`}
+              className={`absolute inset-0 ${hearts > 0 ? "text-pink-600" : "text-gray-400"}`}
             >
               {hearts}
             </motion.span>
@@ -104,5 +86,5 @@ export default function Header({ progress, hearts, onExitClick }: HeaderProps) {
         </div>
       </div>
     </header>
-  );
+  )
 }

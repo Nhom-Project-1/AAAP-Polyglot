@@ -49,8 +49,12 @@ function LessonPageContent() {
   const [error, setError] = useState<string | null>(null)
 
   const playAudio = (src: string) => {
-    const audio = new Audio(src)
-    audio.play()
+    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_AUDIO_BASE_URL;
+    if (!baseUrl) return;
+
+    const fullUrl = `${baseUrl}${src}`; 
+    const audio = new Audio(fullUrl);
+    audio.play();
   }
 
   useEffect(() => {
@@ -81,6 +85,22 @@ function LessonPageContent() {
 
     fetchData()
   }, [langId, unitId, lessonId])
+
+  const handleStartChallenge = async () => {
+    if (!lesson) return;
+
+    try {
+      const res = await fetch(`/api/challenge?ma_bai_hoc=${lesson.ma_bai_hoc}`);
+      if (!res.ok && res.status !== 404) {
+        const data = await res.json();
+        console.error(data.error || "Lỗi không xác định");
+        return;
+      }
+      router.push(`/course/challenge?id=${lesson.ma_bai_hoc}`);
+    } catch (err) {
+      console.error("Lỗi khi gọi API challenge:", err);
+    }
+  };
 
   if (loading)
     return <p className="text-center mt-10">Đang tải dữ liệu...</p>
@@ -161,7 +181,7 @@ function LessonPageContent() {
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => router.push("/course/challenge")}
+          onClick={handleStartChallenge}
           className="bg-pink-400 text-white px-8 py-3 rounded-xl font-semibold shadow-md hover:bg-pink-500 transition cursor-pointer"
         >
           Bắt đầu làm bài

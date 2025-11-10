@@ -20,7 +20,7 @@
 
     const handleSignUp = async (e: React.FormEvent) => {
       e.preventDefault()
-      setIsLoading(false)
+      setIsLoading(true)
 
       try {
         const res = await fetch("/api/signup", {
@@ -121,7 +121,7 @@
           <div>
             <label className="block text-sm font-medium mb-1">Email</label>
             <input
-              type="email"
+              type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full border border-pink-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300"
