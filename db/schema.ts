@@ -107,7 +107,9 @@ export const muc_tieu = pgTable("muc_tieu", {
 export const bang_xep_hang = pgTable("bang_xep_hang", {
   ma_bxh: serial("ma_bxh").primaryKey(),
   ma_nguoi_dung: integer("ma_nguoi_dung")
-    .references(() => nguoi_dung.ma_nguoi_dung, { onDelete: "cascade" }),
+    .notNull()
+    .references(() => nguoi_dung.ma_nguoi_dung, { onDelete: "cascade" })
+    .unique(),
   tong_diem_xp: integer("tong_diem_xp").default(0).notNull(),
 });
 
