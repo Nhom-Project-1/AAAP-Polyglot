@@ -10,6 +10,11 @@ type Lang = {
   code: string
 }
 
+type TienDo = {
+  ma_bai_hoc: number
+  diem_kinh_nghiem: number
+}
+
  export default function UserProgress() {
   const router = useRouter()
   const [lang, setLang] = useState<Lang | null>(null)
@@ -63,7 +68,7 @@ type Lang = {
 
   return (
     <div className="flex items-center gap-10 p-3 rounded-xl">
-      {/* Cờ */}
+      {/* cờ ngôn ngữ */}
       <div
         className="flex items-center gap-2 cursor-pointer hover:scale-105 transition-transform"
         onClick={() => router.push("/course/choose")}
@@ -77,7 +82,7 @@ type Lang = {
         </div>
       </div>
 
-      {/* Điểm */}
+      {/* tổng XP người dùng */}
       <div className="flex items-center gap-1">
         <img src="/star.png" alt="Score" className="w-6 h-7 object-contain" />
         <span className="text-lg font-semibold text-yellow-400 leading-none">
