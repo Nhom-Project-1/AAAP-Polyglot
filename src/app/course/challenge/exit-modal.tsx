@@ -6,18 +6,22 @@ import { useState } from "react";
 interface ExitModalProps {
   show: boolean;
   onClose: () => void;
-  onResetProgress?: () => void; 
+  maBaiHoc: number;
 }
 
-export default function ExitModal({ show, onClose, onResetProgress }: ExitModalProps) {
+export default function ExitModal({ show, onClose, maBaiHoc }: ExitModalProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   if (!show) return null;
 
   const handleConfirm = async () => {
     try {
-      setLoading(true)
-      onResetProgress?.()
+      setLoading(true);
+      await fetch("/api/challenge/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "credentials": "include" },
+        body: JSON.stringify({ ma_bai_hoc: maBaiHoc, isExiting: true }),
+      });
       const res = await fetch("/api/user-language", {
         method: "GET",
         credentials: "include",

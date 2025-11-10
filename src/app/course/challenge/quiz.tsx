@@ -20,9 +20,10 @@ interface QuizProps {
   onSelect: (id: number) => void
   showResult: boolean
   selected: number | null
+  isChecking: boolean
 }
 
-export default function Quiz({ challenge, onSelect, showResult, selected }: QuizProps) {
+export default function Quiz({ challenge, onSelect, showResult, selected, isChecking }: QuizProps) {
   if (!challenge) return null
 
   return (
@@ -39,27 +40,29 @@ export default function Quiz({ challenge, onSelect, showResult, selected }: Quiz
         {challenge.lua_chon_thu_thach?.map((choice: LuaChonThuThach) => {
           const isSelected = selected === choice.ma_lua_chon
           const isCorrect = choice.dung
-          let showColor = "bg-gray-100 border-gray-300 text-gray-800"
+          let colorClass = "bg-gray-100 border-gray-300 text-gray-800"
+          let hoverClass = "hover:bg-gray-200" // Hiệu ứng hover mặc định
 
-          if (showResult) {
-            if (isSelected && isCorrect) showColor = "bg-green-400 text-white border-green-500"
-            else if (isSelected && !isCorrect) showColor = "bg-red-400 text-white border-red-500"
-            else if (!isSelected && isCorrect) showColor = "bg-green-300 text-white border-green-400"
-          } else if (isSelected) showColor = "bg-pink-100 border-pink-500 text-pink-700"
-          else showColor = "bg-gray-100 hover:bg-gray-200 border-gray-300 text-gray-800"
+          if (showResult || isChecking) {
+            hoverClass = "" // Xóa hiệu ứng hover khi đang kiểm tra hoặc đã có kết quả
+            if (isSelected && isCorrect) colorClass = "bg-green-400 text-white border-green-500"
+            else if (isSelected && !isCorrect) colorClass = "bg-red-400 text-white border-red-500"
+            else if (!isSelected && isCorrect) colorClass = "bg-green-300 text-white border-green-400"
+          } else if (isSelected) {
+            colorClass = "bg-pink-100 border-pink-500 text-pink-700"
+          }
 
           return (
             <button
               key={choice.ma_lua_chon}
               onClick={() => {
-                if (showResult) return  
+                if (showResult||isChecking) return  
                 onSelect(choice.ma_lua_chon)
               }}
+              disabled={showResult || isChecking}
               className={`px-4 py-2 rounded border text-left transition-all duration-150 ease-out transform
-                ${showResult 
-                  ? "cursor-default opacity-70"  
-                  : "hover:scale-105 active:scale-95 cursor-pointer"} 
-                ${showColor}`}
+                ${showResult || isChecking ? "cursor-default" : "hover:scale-105 active:scale-95 cursor-pointer"}
+                ${colorClass} ${hoverClass}`}
             >
               {choice.noi_dung}
             </button>

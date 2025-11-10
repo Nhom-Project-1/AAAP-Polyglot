@@ -1,5 +1,6 @@
 import { and, count, eq, sql } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
 import { db } from '../../../../../db/drizzle';
 import {
   cau_tra_loi_nguoi_dung,
@@ -8,10 +9,41 @@ import {
   tien_do,
 } from '../../../../../db/schema';
 
+const JWT_SECRET = process.env.JWT_SECRET!;
+
 export async function POST(req: NextRequest) {
   try {
-    const { ma_nguoi_dung, ma_bai_hoc, ma_lua_chon, ma_thu_thach } =
+    const { ma_bai_hoc, ma_lua_chon, ma_thu_thach, isExiting } =
       await req.json();
+
+    // 1. Lấy token từ cookie và giải mã để lấy mã người dùng
+    const token = req.cookies.get('token')?.value;
+    if (!token) {
+      return NextResponse.json({ error: 'Chưa đăng nhập.' }, { status: 401 });
+    }
+    const decoded: string | jwt.JwtPayload = jwt.verify(token, JWT_SECRET);
+    const ma_nguoi_dung = (decoded as jwt.JwtPayload).userId;
+
+    // Xử lý logic thoát giữa chừng
+    if (isExiting) {
+      if (!ma_nguoi_dung || !ma_bai_hoc) {
+        return NextResponse.json(
+          { error: 'Thiếu thông tin để hủy tiến độ' },
+          { status: 400 },
+        );
+      }
+      // Đánh dấu lần làm bài hiện tại là thất bại để lần sau bắt đầu lại
+      await db
+        .update(tien_do)
+        .set({ trang_thai: 'that_bai', so_tim_con_lai: 5 })
+        .where(
+          and(
+            eq(tien_do.ma_nguoi_dung, ma_nguoi_dung),
+            eq(tien_do.ma_bai_hoc, ma_bai_hoc),
+          ),
+        );
+      return NextResponse.json({ message: 'Tiến độ đã được hủy.' }, { status: 200 });
+    }
 
     if (!ma_nguoi_dung || !ma_bai_hoc || !ma_lua_chon || !ma_thu_thach) {
       return NextResponse.json(
@@ -171,29 +203,24 @@ export async function POST(req: NextRequest) {
 
 
       const prevMaxXPQuery = await db
-        .select({
-          max_xp: sql<number>`MAX(sub.so_dung * 10)`.mapWith(Number),
-        })
+        .select({ lan_lam: cau_tra_loi_nguoi_dung.lan_lam })
         .from(
-          db
-            .select({
-              so_dung: count(cau_tra_loi_nguoi_dung.id).as('so_dung'),
-              lan_lam: cau_tra_loi_nguoi_dung.lan_lam,
-            })
-            .from(cau_tra_loi_nguoi_dung)
-            .where(
-              and(
-                eq(cau_tra_loi_nguoi_dung.ma_bai_hoc, ma_bai_hoc),
-                eq(cau_tra_loi_nguoi_dung.ma_nguoi_dung, ma_nguoi_dung),
-                eq(cau_tra_loi_nguoi_dung.dung, true),
-                sql`${cau_tra_loi_nguoi_dung.lan_lam} <> ${lan_lam_hien_tai}`,
-              ),
-            )
-            .groupBy(cau_tra_loi_nguoi_dung.lan_lam)
-            .as('sub'),
-        );
+          cau_tra_loi_nguoi_dung
+        )
+        .where(
+          and(
+            eq(cau_tra_loi_nguoi_dung.ma_bai_hoc, ma_bai_hoc),
+            eq(cau_tra_loi_nguoi_dung.ma_nguoi_dung, ma_nguoi_dung),
+            eq(cau_tra_loi_nguoi_dung.dung, true),
+            sql`${cau_tra_loi_nguoi_dung.lan_lam} <> ${lan_lam_hien_tai}`
+          )
+        )
+        .groupBy(cau_tra_loi_nguoi_dung.lan_lam)
+        .orderBy(sql`count(${cau_tra_loi_nguoi_dung.id}) DESC`)
+        .limit(1);
 
-      const prevMaxXP = Number(prevMaxXPQuery[0]?.max_xp ?? 0);
+      const prevMaxCorrectCount = prevMaxXPQuery.length > 0 ? (await db.select({count: count()}).from(cau_tra_loi_nguoi_dung).where(and(eq(cau_tra_loi_nguoi_dung.lan_lam, prevMaxXPQuery[0].lan_lam), eq(cau_tra_loi_nguoi_dung.dung, true), eq(cau_tra_loi_nguoi_dung.ma_nguoi_dung, ma_nguoi_dung), eq(cau_tra_loi_nguoi_dung.ma_bai_hoc, ma_bai_hoc))))[0].count : 0;
+      const prevMaxXP = prevMaxCorrectCount * 10;
       const finalXP = soCauDung * 10;
       const isNewMax = finalXP > prevMaxXP;
 
@@ -206,7 +233,7 @@ export async function POST(req: NextRequest) {
         } = {
           trang_thai: 'hoan_thanh',
           so_tim_con_lai: 5,
-        };
+        }
         if (isNewMax) {
           updateData.diem_kinh_nghiem = finalXP;
         }
@@ -227,7 +254,18 @@ export async function POST(req: NextRequest) {
       if (isNewMax) {
         summaryMessage = `Kỷ lục mới! Bạn đúng ${soCauDung}/${total} câu và đạt ${finalXP} XP.`;
       } else {
-        summaryMessage = `Hoàn thành! Bạn đúng ${soCauDung}/${total} câu. Điểm cao nhất của bạn vẫn là ${prevMaxXP} XP.`;
+        // Nếu không phá kỷ lục nhưng vẫn đạt điểm tuyệt đối
+        if (soCauDung === total && total > 0) {
+          summaryMessage = `Phong độ đỉnh cao! Bạn đã duy trì thành tích tuyệt đối ${soCauDung}/${total} câu đúng.`;
+        } else if (lan_lam_hien_tai > 1) {
+          if (soCauDung < total / 2) {
+            summaryMessage = `Đừng nản lòng! Mỗi lần luyện tập là một bước tiến. Bạn đúng ${soCauDung}/${total} câu. Hãy thử lại nhé!`;
+          } else {
+            summaryMessage = `Luyện tập tốt lắm! Bạn đúng ${soCauDung}/${total} câu. Hãy cố gắng phá kỷ lục ${prevMaxXP} XP ở lần sau nhé!`;
+          }
+        } else { // Trường hợp làm lần đầu nhưng không phá kỷ lục
+          summaryMessage = `Hoàn thành! Bạn đúng ${soCauDung}/${total} câu. Điểm cao nhất của bạn vẫn là ${prevMaxXP} XP.`;
+        }
       }
 
       return NextResponse.json({
@@ -235,7 +273,7 @@ export async function POST(req: NextRequest) {
         message: dapAn.dung ? 'Chính xác!' : 'Sai mất rồi.',
         summaryMessage: summaryMessage,
         hoan_thanh: true,
-        diem_moi: Math.max(finalXP, prevMaxXP),
+        diem_moi: isNewMax ? finalXP - prevMaxXP : 0,
         so_tim_con_lai: finalHearts,
         lan_tiep_theo: lan_lam_hien_tai + 1,
       });
@@ -253,8 +291,9 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         correct: true,
-        message: `Chính xác! Bạn đã làm ${soDaLamHienTai}/${total}.`,
+        message: `Chính xác! Hãy cố gắng ở câu tiếp theo.`,
         lan_lam: lan_lam_hien_tai,
+        so_tim_con_lai: progress.so_tim_con_lai, // Luôn trả về số tim hiện tại
       });
     }
 

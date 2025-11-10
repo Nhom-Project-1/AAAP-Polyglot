@@ -47,6 +47,8 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
   const [footerResetKey, setFooterResetKey] = useState(0)
   const [showFail, setShowFail] = useState(false)
   const [isOutOfHearts, setIsOutOfHearts] = useState(false)
+  const [isRestarting, setIsRestarting] = useState(false)
+  const [isChecking, setIsChecking] = useState(false)
   // lấy user
   useEffect(() => {
     async function fetchUser() {
@@ -84,6 +86,11 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
     async function fetchChallengeDetail() {
       if (challengeIds.length === 0) return
       const id = challengeIds[currentIndex]
+      // Chỉ bật loading khi đang restart, không bật khi chuyển câu hỏi thông thường
+      if (isRestarting) {
+        setLoading(true)
+        setIsRestarting(false) // Reset lại trạng thái restarting
+      }
       try {
         const res = await fetch(`/api/challenge/${id}`)
         const data = await res.json()
@@ -94,7 +101,7 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
         setLoading(false)
       }
     }
-    fetchChallengeDetail()
+    if (challengeIds.length > 0) fetchChallengeDetail()
   }, [challengeIds, currentIndex])
 
   useEffect(() => {
@@ -103,8 +110,9 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
     }
   }, [isOutOfHearts])
 
-  if (loading) return <p>Đang tải thử thách...</p>
-  if (!currentChallenge) return <p>Không có thử thách</p>
+  if (loading || !currentChallenge) {
+    return <p>Đang tải thử thách...</p>
+  }
 
   const handleSelect = (id: number) => {
     setSelectedChoice(id)
@@ -123,7 +131,9 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
 
   const handleRestartChallenge = () => {
     setSelectedChoice(null)
+    setIsRestarting(true) // Đánh dấu là đang restart
     setCurrentIndex(0)
+    setCurrentChallenge(null)
     setDiemMoi(0)
     setFooterResetKey(prev => prev + 1)
     setHearts(5)
@@ -134,23 +144,35 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
       setCompletionMessage(null)
   }
 
+  // Tính toán progress. Nếu đã show kết quả, tính cả câu hiện tại là đã hoàn thành.
+  const progressValue = showResult
+    ? (currentIndex + 1) / challengeIds.length
+    : currentIndex / challengeIds.length
+
+  // Tìm đáp án đúng của câu hỏi hiện tại để thực hiện Optimistic UI
+  const correctChoiceId = currentChallenge?.lua_chon_thu_thach.find(
+    (choice) => choice.dung
+  )?.ma_lua_chon
+
   return (
     <div className="flex flex-col min-h-screen">
-      <Header progress={currentIndex / challengeIds.length} hearts={hearts} onExitClick={() => setShowExitModal(true)} />
+      <Header progress={progressValue} hearts={hearts} onExitClick={() => setShowExitModal(true)} />
       <ExitModal
         show={showExitModal}
-        onClose={() => setShowExitModal(false)}
-        onResetProgress={handleRestartChallenge} 
+        onClose={() => setShowExitModal(false)} 
+        maBaiHoc={maBaiHoc}
       />
   <CongratModal show={showCongrats} diemMoi={diemMoi} message={completionMessage ?? undefined} onRestart={handleRestartChallenge} />
-      <Quiz challenge={currentChallenge} onSelect={handleSelect} selected={selectedChoice} showResult={showResult} />
+      <Quiz challenge={currentChallenge} onSelect={handleSelect} selected={selectedChoice} showResult={showResult} isChecking={isChecking} />
       {maNguoiDung && currentChallenge && (
         <Footer
           key={footerResetKey}
+          isChecking={isChecking}
           maNguoiDung={maNguoiDung}
           maBaiHoc={maBaiHoc}
           maThuThach={currentChallenge.ma_thu_thach}
           luaChonDaChon={selectedChoice}
+          correctChoiceId={correctChoiceId}
           hearts={hearts}
           isOutOfHearts={isOutOfHearts}
           onUpdateHearts={(val) => {
@@ -162,9 +184,10 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
           isLastQuestion={currentIndex === challengeIds.length - 1}
           onFinalMessage={(m: string) => setCompletionMessage(m)}
           onContinue={handleContinue}
+          onCheckingChange={(checking) => setIsChecking(checking)}
         />
       )}
-      <FailModal show={showFail} onRestart={handleRestartChallenge} />
+      <FailModal show={showFail} onRestart={handleRestartChallenge} maBaiHoc={maBaiHoc} />
     </div>
   )
 }

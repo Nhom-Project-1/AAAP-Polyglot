@@ -49,8 +49,12 @@ function LessonPageContent() {
   const [error, setError] = useState<string | null>(null)
 
   const playAudio = (src: string) => {
-    const audio = new Audio(src)
-    audio.play()
+    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_AUDIO_BASE_URL;
+    if (!baseUrl) return;
+
+    const fullUrl = `${baseUrl}${src}`; 
+    const audio = new Audio(fullUrl);
+    audio.play();
   }
 
   useEffect(() => {

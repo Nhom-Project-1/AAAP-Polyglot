@@ -149,9 +149,9 @@ export default function CongratModal({ show, diemMoi = 0, message: finalMessage,
         className="text-lg text-pink-500 mb-8 z-10"
       >
         {message ? (
-          <p className="text-lg mb-6">{message}</p>
+          <p className="text-lg mb-6 text-center max-w-md">{message}</p>
         ) : (
-          <p className="text-lg mb-6">Bạn vừa kiếm được <span className="font-semibold">{xp} XP</span></p>
+          <p className="text-lg mb-6">Bạn vừa được cộng <span className="font-semibold">{xp} XP</span>.</p>
         )}
       </motion.div>
 

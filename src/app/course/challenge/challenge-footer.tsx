@@ -7,6 +7,7 @@ interface FooterProps {
   maBaiHoc: number
   maThuThach: number
   luaChonDaChon: number | null
+  correctChoiceId: number | undefined
   hearts: number
   onUpdateHearts: (newHearts: number) => void
   onComplete?: (xpThisRound: number) => void
@@ -16,6 +17,8 @@ interface FooterProps {
   onShowResult?: (show: boolean) => void
   isLastQuestion?: boolean
   onFinalMessage?: (msg: string) => void
+  isChecking: boolean
+  onCheckingChange: (checking: boolean) => void
 }
 
 function extractXP(message: string): number | null {
@@ -29,6 +32,7 @@ export default function Footer({
   maBaiHoc,
   maThuThach,
   luaChonDaChon,
+  correctChoiceId,
   hearts,
   isOutOfHearts,
   onUpdateHearts,
@@ -38,24 +42,40 @@ export default function Footer({
   onShowResult,
   isLastQuestion,
   onFinalMessage,
+  isChecking,
+  onCheckingChange,
 }: FooterProps) {
   const [checked, setChecked] = useState(false)
   const [result, setResult] = useState<boolean | null>(null)
   const [message, setMessage] = useState("")
-  const [loading, setLoading] = useState(false)
-
   useEffect(() => {
     setChecked(false)
     setResult(null)
     setMessage("")
-    setLoading(false)
+    onCheckingChange(false)
     // notify parent to hide result highlights when footer is reset
     onShowResult?.(false)
   }, [resetKey])
 
   const handleCheck = async () => {
-    if (!luaChonDaChon || loading || hearts <= 0) return
-    setLoading(true)
+    if (!luaChonDaChon || isChecking || hearts <= 0 || !correctChoiceId) return
+
+    // --- Optimistic UI Update ---
+    // 1. Giả định kết quả và cập nhật giao diện ngay lập tức
+    const isCorrect = luaChonDaChon === correctChoiceId
+    setChecked(true)
+    setResult(isCorrect)
+    onShowResult?.(true)
+    if (isCorrect) {
+      setMessage("Chính xác!")
+    } else {
+      setMessage("Sai mất rồi.")
+      // Giả định trừ tim ở UI
+      onUpdateHearts(Math.max(hearts - 1, 0))
+    }
+    // -----------------------------
+
+    // 2. Gửi yêu cầu lên server ở chế độ nền
     try {
       const res = await fetch("/api/challenge/submit", {
         method: "POST",
@@ -71,26 +91,24 @@ export default function Footer({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Lỗi khi nộp đáp án")
 
-      setChecked(true)
-      setResult(data.correct)
-      setMessage(data.message || "")
-
-      // notify parent to show result highlights
-      onShowResult?.(true)
-
-      if (isLastQuestion && data.correct) {
-        setMessage("Chính xác!")
+      // Cập nhật lại message và các thông tin khác từ server nếu cần
+      // (Trong trường hợp này, message giả định đã đủ tốt)
+      if (data.message && data.message !== message) {
+        setMessage(data.message)
       }
-  
-      if (isLastQuestion && data.summaryMessage) {
+      
+      // Luôn cập nhật summary message nếu API trả về
+      if (data.summaryMessage) {
         onFinalMessage?.(String(data.summaryMessage))
       }
 
       if (data.so_tim_con_lai !== undefined) {
         if (data.so_tim_con_lai === 0) {
-          onUpdateHearts(0)
-        } else {
-          onUpdateHearts(data.so_tim_con_lai)
+          onUpdateHearts(0) // Đồng bộ lại số tim từ server
+        }
+        // Nếu trả lời đúng, server sẽ trả về số tim không đổi, không cần cập nhật lại
+        else if (data.so_tim_con_lai !== hearts) {
+          onUpdateHearts(data.so_tim_con_lai) // Đồng bộ nếu có sai khác
         }
       }
 
@@ -107,8 +125,6 @@ export default function Footer({
 
     } catch (err: any) {
       setMessage(err.message || "Không thể gửi đáp án")
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -136,13 +152,13 @@ export default function Footer({
 
       {!checked ? (
         <Button
-          disabled={!luaChonDaChon || loading}
+          disabled={!luaChonDaChon || isChecking}
           onClick={handleCheck}
-          className={`px-8 py-6 text-lg rounded-lg mr-60 border-0 transition-all duration-200 ${
+          className={`px-8 py-6 text-lg rounded-lg mr-60 border-0 transition-all duration-200 cursor-pointer ${
             luaChonDaChon ? "bg-pink-500 hover:bg-pink-600 text-white" : "bg-gray-200 text-gray-500 cursor-not-allowed"
           }`}
         >
-          {loading ? "Đang kiểm tra..." : "Kiểm tra"}
+          {isChecking ? "Đang kiểm tra..." : "Kiểm tra"}
         </Button>
       ) : (
         <Button
