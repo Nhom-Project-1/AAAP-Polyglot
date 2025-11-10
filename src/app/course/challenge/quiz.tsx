@@ -41,7 +41,7 @@ export default function Quiz({ challenge, onSelect, showResult, selected, isChec
           const isSelected = selected === choice.ma_lua_chon
           const isCorrect = choice.dung
           let colorClass = "bg-gray-100 border-gray-300 text-gray-800"
-          let hoverClass = "hover:bg-gray-200" // Hiệu ứng hover mặc định
+          let hoverClass = "hover:bg-pink-200" // Hiệu ứng hover mặc định
 
           if (showResult || isChecking) {
             hoverClass = "" // Xóa hiệu ứng hover khi đang kiểm tra hoặc đã có kết quả
