@@ -1,37 +1,74 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Layout from "@/components/layout"
 import { motion } from "framer-motion"
 import { Crown } from "lucide-react"
+import { useAuthStore } from "@/lib/store"
+import Loading from "@/components/ui/loading"
+import Crying from "@/components/ui/crying"
+
+interface RankingUser {
+  ten_dang_nhap: string;
+  tong_diem_xp: number;
+}
+
+interface RankingData {
+  topRanking: RankingUser[];
+  myRank: number | null;
+  myScore: number | null;
+}
 
 export default function RankingPage() {
-  const mockResponse = {
-    topRanking: [
-      { ma_nguoi_dung: "nguyenvana", tong_diem_xp: 950 },
-      { ma_nguoi_dung: "lethib", tong_diem_xp: 880 },
-      { ma_nguoi_dung: "tranquoc", tong_diem_xp: 860 },
-      { ma_nguoi_dung: "phamlinh", tong_diem_xp: 830 },
-      { ma_nguoi_dung: "ngocmai", tong_diem_xp: 800 },
-      { ma_nguoi_dung: "minhduc", tong_diem_xp: 770 },
-      { ma_nguoi_dung: "hoangnam", tong_diem_xp: 750 },
-      { ma_nguoi_dung: "lananh", tong_diem_xp: 730 },
-      { ma_nguoi_dung: "phuong", tong_diem_xp: 710 },
-      { ma_nguoi_dung: "tuan", tong_diem_xp: 700 },
-    ],
-    myRank: 19,
-    myScore: 50,
+  const { user } = useAuthStore()
+  const [rankingData, setRankingData] = useState<RankingData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!user?.id) {
+      return;
+    }
+
+    const fetchRanking = async () => {
+      try {
+        setLoading(true)
+        const res = await fetch("/api/ranking/top_ranking", {
+          method: "GET",
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || "Không thể tải bảng xếp hạng.")
+        setRankingData(data)
+      } catch (err: any) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchRanking()
+  }, [user?.id])
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="h-full w-full flex items-center justify-center"><p className="text-lg text-gray-500">Đang tải...</p></div>
+      </Layout>
+    );
   }
+  if (error) return <Layout><div className="text-center mt-10"><Crying /><p className="mt-4">{error}</p></div></Layout>
+  if (!rankingData) return <Layout><p className="text-center mt-10">Không có dữ liệu xếp hạng.</p></Layout>
 
-  const { topRanking, myRank, myScore } = mockResponse
-  const currentUser = "phuonganh"
+  const { topRanking, myRank, myScore } = rankingData
+  const currentUser = user?.username || ""
 
-  const isInTop = topRanking.some(u => u.ma_nguoi_dung === currentUser)
+  const isInTop = myRank !== null && myRank <= 10
   const showExtraRow = !isInTop
   const crownColors = ["text-yellow-400", "text-gray-400", "text-orange-400"]
 
   return (
     <Layout>
-      <div className="flex justify-center items-center min-h-screen px-4">
+      <div className="flex justify-center min-h-screen px-4 py-12">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -53,13 +90,13 @@ export default function RankingPage() {
             <tbody>
               {topRanking.map((user, index) => (
                 <motion.tr
-                  key={user.ma_nguoi_dung}
+                  key={user.ten_dang_nhap}
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className={`border-b hover:bg-pink-50 transition duration-300 ${
-                    index < 3 ? "font-semibold" : ""
-                  }`}
+                  className={`border-b transition duration-300 ${
+                    user.ten_dang_nhap === currentUser ? "bg-pink-100 font-semibold" : "hover:bg-pink-50"
+                  } ${ index < 3 && user.ten_dang_nhap !== currentUser ? "font-semibold" : "" }`}
                 >
                   <td className="p-3 w-16 text-center">
                     {index < 3 ? (
@@ -84,27 +121,20 @@ export default function RankingPage() {
                     )}
                   </td>
                   <td
-                    className={`p-3 ${
-                      user.ma_nguoi_dung === currentUser
-                        ? "text-pink-500 font-semibold"
-                        : ""
-                    }`}
+                    className={`p-3 ${user.ten_dang_nhap === currentUser ? "text-pink-500" : ""}`}
                   >
-                    {user.ma_nguoi_dung}
+                    {user.ten_dang_nhap}
                   </td>
                   <td
-                    className={`p-3 text-right ${
-                      user.ma_nguoi_dung === currentUser
-                        ? "text-pink-500 font-semibold"
-                        : "text-gray-800"
-                    }`}
+                    className={`p-3 text-right ${user.ten_dang_nhap === currentUser ? "text-pink-500" : "text-gray-800"
+                      }`}
                   >
                     {user.tong_diem_xp}
                   </td>
                 </motion.tr>
               ))}
 
-              {showExtraRow && (
+              {showExtraRow && myRank && myScore !== null && (
                 <>
                   <tr>
                     <td
@@ -118,11 +148,11 @@ export default function RankingPage() {
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 }}
-                    className="bg-pink-50 font-medium border-t-2 border-pink-200"
+                    className="bg-pink-100 font-semibold border-t-2 border-pink-200"
                   >
-                    <td className="p-3 text-center text-gray-700">{myRank}</td>
-                    <td className="p-3 text-pink-500">{currentUser}</td>
-                    <td className="p-3 text-right text-pink-500">{myScore}</td>
+                    <td className="p-3 text-center text-pink-500">{myRank}</td>
+                    <td className="p-3 text-pink-500 ">{currentUser}</td>
+                    <td className="p-3 text-right text-pink-500 ">{myScore}</td>
                   </motion.tr>
                 </>
               )}

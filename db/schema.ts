@@ -36,15 +36,6 @@ export const admin = pgTable(
   })
 );
 
-
-export const quan_ly_nguoi_dung = pgTable("quan_ly_nguoi_dung", {
-  ma_quan_ly: serial("ma_quan_ly").primaryKey(),
-  ma_admin: integer("ma_admin").references(() => admin.ma_admin, { onDelete: "cascade" }),
-  ma_nguoi_dung: integer("ma_nguoi_dung").references(() => nguoi_dung.ma_nguoi_dung, { onDelete: "cascade" }),
-  hanh_dong: varchar("hanh_dong", { length: 100 }), 
-  thoi_gian: timestamp("thoi_gian", { withTimezone: false }).defaultNow(),
-});
-
 export const ngon_ngu = pgTable("ngon_ngu", {
   ma_ngon_ngu: serial("ma_ngon_ngu").primaryKey(),
   ten_ngon_ngu: varchar("ten_ngon_ngu", { length: 100 }).notNull(),
@@ -116,7 +107,9 @@ export const muc_tieu = pgTable("muc_tieu", {
 export const bang_xep_hang = pgTable("bang_xep_hang", {
   ma_bxh: serial("ma_bxh").primaryKey(),
   ma_nguoi_dung: integer("ma_nguoi_dung")
-    .references(() => nguoi_dung.ma_nguoi_dung, { onDelete: "cascade" }),
+    .notNull()
+    .references(() => nguoi_dung.ma_nguoi_dung, { onDelete: "cascade" })
+    .unique(),
   tong_diem_xp: integer("tong_diem_xp").default(0).notNull(),
 });
 
@@ -156,6 +149,7 @@ export const cau_tra_loi_nguoi_dung = pgTable("cau_tra_loi_nguoi_dung", {
 export const tien_do_muc_tieu = pgTable(
   "tien_do_muc_tieu",
   {
+    id: serial("id").primaryKey(),
     ma_nguoi_dung: integer("ma_nguoi_dung")
       .references(() => nguoi_dung.ma_nguoi_dung, { onDelete: "cascade" }),
     ma_muc_tieu: integer("ma_muc_tieu")
