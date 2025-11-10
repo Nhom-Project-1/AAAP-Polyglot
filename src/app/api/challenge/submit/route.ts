@@ -1,5 +1,5 @@
 import { and, count, eq, sql } from 'drizzle-orm';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '../../../../../db/drizzle';
 import {
   cau_tra_loi_nguoi_dung,
@@ -8,7 +8,7 @@ import {
   tien_do,
 } from '../../../../../db/schema';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const { ma_nguoi_dung, ma_bai_hoc, ma_lua_chon, ma_thu_thach } =
       await req.json();
@@ -19,6 +19,7 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
+    // --- 1. Lấy thông tin cơ bản ---
 
     const dapAn = await db.query.lua_chon_thu_thach.findFirst({
       where: and(
@@ -59,6 +60,8 @@ export async function POST(req: Request) {
       .where(eq(thu_thach.ma_bai_hoc, ma_bai_hoc));
     const total = totalChallenges[0]?.total ?? 0;
 
+    // --- 2. Xác định lần làm bài hiện tại ---
+
     const maxLanLamRow = await db
       .select({
         max_lan: sql<number>`COALESCE(MAX(${cau_tra_loi_nguoi_dung.lan_lam}), 0)`,
@@ -89,101 +92,36 @@ export async function POST(req: Request) {
       daLamTrongLanMax = daLamCountMax[0]?.da_lam ?? 0;
     }
 
-    if (maxLan > 0 && daLamTrongLanMax >= total) {
+    // Nếu lần làm bài trước đã hoàn thành HOẶC đã thất bại, hãy bắt đầu một lần mới.
+    if (
+      (maxLan > 0 && daLamTrongLanMax >= total) || progress.trang_thai === 'that_bai'
+    ) {
       lan_lam_hien_tai = (maxLan || 1) + 1;
     }
+
+    // --- 3. Ghi nhận câu trả lời của người dùng ---
 
     const daLamCauNay = await db.query.cau_tra_loi_nguoi_dung.findFirst({
       where: and(
         eq(cau_tra_loi_nguoi_dung.ma_nguoi_dung, ma_nguoi_dung),
-        eq(cau_tra_loi_nguoi_dung.ma_bai_hoc, ma_bai_hoc),
         eq(cau_tra_loi_nguoi_dung.ma_thu_thach, ma_thu_thach),
         eq(cau_tra_loi_nguoi_dung.lan_lam, lan_lam_hien_tai),
       ),
       columns: { id: true, dung: true },
     });
 
-    if (daLamCauNay?.dung === true) {
-      return NextResponse.json({
-        correct: true,
-        message: 'Bạn đã trả lời đúng câu này trước đó, không tính thêm điểm.',
-        lan_lam: lan_lam_hien_tai,
-      });
-    }
-
     if (daLamCauNay) {
-      if (daLamCauNay.dung) {
-        return NextResponse.json({
-          correct: true,
-          message:
-            'Bạn đã trả lời đúng câu này trước đó, không tính thêm điểm.',
-          lan_lam: lan_lam_hien_tai,
-        });
-      }
-
-      if (!dapAn.dung) {
-        const newHeart = Math.max(progress.so_tim_con_lai - 1, 0);
-
-        if (newHeart === 0) {
-          const lanLamMoi = (maxLan || 1) + 1;
-
-          await db
-            .update(tien_do)
-            .set({ so_tim_con_lai: 5, trang_thai: 'that_bai' })
-            .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
-
-          await db.insert(cau_tra_loi_nguoi_dung).values({
-            ma_nguoi_dung,
-            ma_bai_hoc,
-            ma_thu_thach,
-            ma_lua_chon,
-            dung: false,
-            lan_lam: lanLamMoi,
-          });
-
-          return NextResponse.json({
-            correct: false,
-            message: `Hết tim! Bắt đầu lượt mới với 5 tim.`,
-            lan_lam_moi: lanLamMoi,
-            so_tim_con_lai: 5,
-            trang_thai: 'that_bai',
-            reset: true,
-          });
-        }
-
-        await db
-          .update(tien_do)
-          .set({ so_tim_con_lai: newHeart, trang_thai: 'dang_hoc' })
-          .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
-
-        return NextResponse.json({
-          correct: false,
-          message: '❌ Sai mất rồi. Bạn bị -1 tim.',
-          so_tim_con_lai: newHeart,
-          lan_lam: lan_lam_hien_tai,
-        });
-      }
-
+      // Nếu đã trả lời câu này trong lượt hiện tại -> cập nhật lại đáp án
       await db
         .update(cau_tra_loi_nguoi_dung)
-        .set({ dung: true, ma_lua_chon })
+        .set({ dung: dapAn.dung, ma_lua_chon })
         .where(eq(cau_tra_loi_nguoi_dung.id, daLamCauNay.id));
-
-      return NextResponse.json({
-        correct: true,
-        message: '✅ Bạn đã sửa lại và trả lời đúng!',
-        lan_lam: lan_lam_hien_tai,
+    } else {
+      // Nếu chưa trả lời -> thêm mới
+      await db.insert(cau_tra_loi_nguoi_dung).values({
+        ma_nguoi_dung, ma_bai_hoc, ma_thu_thach, ma_lua_chon, dung: dapAn.dung, lan_lam: lan_lam_hien_tai,
       });
     }
-
-    await db.insert(cau_tra_loi_nguoi_dung).values({
-      ma_nguoi_dung,
-      ma_bai_hoc,
-      ma_thu_thach,
-      ma_lua_chon,
-      dung: dapAn.dung,
-      lan_lam: lan_lam_hien_tai,
-    });
 
     const daLamCount = await db
       .select({ da_lam: count(cau_tra_loi_nguoi_dung.id) })
@@ -196,6 +134,8 @@ export async function POST(req: Request) {
         ),
       );
     const soDaLamHienTai = daLamCount[0]?.da_lam ?? 0;
+
+    // --- 4. Xử lý logic dựa trên kết quả và tiến độ ---
 
     const dungCount = await db
       .select({ so_dung: count(cau_tra_loi_nguoi_dung.id) })
@@ -210,83 +150,100 @@ export async function POST(req: Request) {
       );
     const soCauDung = dungCount[0]?.so_dung ?? 0;
 
+    // Kịch bản 1: Đã hoàn thành tất cả các câu hỏi trong lượt
     if (soDaLamHienTai >= total) {
-    const newXP = soCauDung * 10;
-    const isSuccess = soCauDung > 0;
+      let finalHearts = progress.so_tim_con_lai;
+      if (!dapAn.dung) {
+        finalHearts = Math.max(progress.so_tim_con_lai - 1, 0);
+      }
 
-    // lấy XP cao nhất từ tất cả các lượt trước
-    const maxXPQuery = await db
-      .select({
-        max_xp: sql<number>`MAX(sub.so_dung * 10)`.mapWith(Number),
-      })
-      .from(
-        db
-          .select({
-            so_dung: count(cau_tra_loi_nguoi_dung.id).as('so_dung'),
-            lan_lam: cau_tra_loi_nguoi_dung.lan_lam,
-          })
-          .from(cau_tra_loi_nguoi_dung)
-          .where(
-            and(
-              eq(cau_tra_loi_nguoi_dung.ma_bai_hoc, ma_bai_hoc),
-              eq(cau_tra_loi_nguoi_dung.ma_nguoi_dung, ma_nguoi_dung),
-              eq(cau_tra_loi_nguoi_dung.dung, true)
+      // Nếu hết tim ở câu cuối cùng -> vẫn tính là thất bại.
+      if (finalHearts === 0) {
+        const lanLamMoi = (maxLan || 1) + 1;
+        await db
+          .update(tien_do)
+          .set({ trang_thai: 'that_bai', so_tim_con_lai: 5 }) // Reset tim cho lần mới
+          .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
+
+        // Trả về response thất bại, yêu cầu client reset
+        return NextResponse.json({ correct: false, message: 'Sai mất rồi. Bạn đã hết tim!', so_tim_con_lai: 0, hoan_thanh: false, reset: true, lan_lam_moi: lanLamMoi });
+      }
+
+
+      const prevMaxXPQuery = await db
+        .select({
+          max_xp: sql<number>`MAX(sub.so_dung * 10)`.mapWith(Number),
+        })
+        .from(
+          db
+            .select({
+              so_dung: count(cau_tra_loi_nguoi_dung.id).as('so_dung'),
+              lan_lam: cau_tra_loi_nguoi_dung.lan_lam,
+            })
+            .from(cau_tra_loi_nguoi_dung)
+            .where(
+              and(
+                eq(cau_tra_loi_nguoi_dung.ma_bai_hoc, ma_bai_hoc),
+                eq(cau_tra_loi_nguoi_dung.ma_nguoi_dung, ma_nguoi_dung),
+                eq(cau_tra_loi_nguoi_dung.dung, true),
+                sql`${cau_tra_loi_nguoi_dung.lan_lam} <> ${lan_lam_hien_tai}`,
+              ),
             )
-          )
-          .groupBy(cau_tra_loi_nguoi_dung.lan_lam)
-          .as('sub')
-      );
+            .groupBy(cau_tra_loi_nguoi_dung.lan_lam)
+            .as('sub'),
+        );
 
-    const maxXP = Number(maxXPQuery[0]?.max_xp ?? newXP);
-    const isNewMax = newXP > maxXP; // lượt hiện tại cao hơn max cũ?
+      const prevMaxXP = Number(prevMaxXPQuery[0]?.max_xp ?? 0);
+      const finalXP = soCauDung * 10;
+      const isNewMax = finalXP > prevMaxXP;
 
-    // update XP nếu cần
-    if (isSuccess && isNewMax) {
-      await db
-        .update(tien_do)
-        .set({
-          diem_kinh_nghiem: newXP,
+      // Chỉ cập nhật DB nếu có thành công (đúng ít nhất 1 câu)
+      if (soCauDung > 0) {
+        const updateData: {
+          trang_thai: 'hoan_thanh';
+          diem_kinh_nghiem?: number;
+          so_tim_con_lai: number;
+        } = {
           trang_thai: 'hoan_thanh',
           so_tim_con_lai: 5,
-        })
-        .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
-    } else if (isSuccess) {
-      await db
-        .update(tien_do)
-        .set({ trang_thai: 'hoan_thanh', so_tim_con_lai: 5 })
-        .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
-    } else {
-      await db
-        .update(tien_do)
-        .set({ trang_thai: 'that_bai', so_tim_con_lai: 5 })
-        .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
-    }
-
-    const percent = total > 0 ? ((soCauDung / total) * 100).toFixed(0) : '0';
-
-    let message = '';
-    if (lan_lam_hien_tai === 1) {
-      message = `Hoàn thành thử thách! Đúng ${soCauDung}/${total} câu (${percent}%) → +${newXP} XP.`;
-    } else {
-      if (isNewMax) {
-        const newCorrect = newXP / 10 - maxXP / 10;
-        message = `Bạn làm lại lần thứ ${lan_lam_hien_tai}, đúng thêm ${newCorrect} câu, được cộng ${newXP - maxXP} XP!`;
+        };
+        if (isNewMax) {
+          updateData.diem_kinh_nghiem = finalXP;
+        }
+        await db
+          .update(tien_do)
+          .set(updateData)
+          .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
       } else {
-        message = `Bạn làm lại lần thứ ${lan_lam_hien_tai} và đúng ${soCauDung}/${total} câu, XP không thay đổi.`;
+        await db
+          .update(tien_do)
+          .set({ trang_thai: 'that_bai', so_tim_con_lai: finalHearts })
+          .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
       }
+
+      const percent = total > 0 ? ((soCauDung / total) * 100).toFixed(0) : '0';
+      let summaryMessage = '';
+      
+      if (isNewMax) {
+        summaryMessage = `Kỷ lục mới! Bạn đúng ${soCauDung}/${total} câu và đạt ${finalXP} XP.`;
+      } else {
+        summaryMessage = `Hoàn thành! Bạn đúng ${soCauDung}/${total} câu. Điểm cao nhất của bạn vẫn là ${prevMaxXP} XP.`;
+      }
+
+      return NextResponse.json({
+        correct: dapAn.dung,
+        message: dapAn.dung ? 'Chính xác!' : 'Sai mất rồi.',
+        summaryMessage: summaryMessage,
+        hoan_thanh: true,
+        diem_moi: Math.max(finalXP, prevMaxXP),
+        so_tim_con_lai: finalHearts,
+        lan_tiep_theo: lan_lam_hien_tai + 1,
+      });
     }
 
-    return NextResponse.json({
-      correct: dapAn.dung,
-      message,
-      hoan_thanh: isSuccess,
-      diem_moi: isSuccess ? Math.max(newXP, maxXP) : progress.diem_kinh_nghiem,
-      so_tim_con_lai: 5,
-      lan_tiep_theo: lan_lam_hien_tai + 1,
-    });
-  }
-
+    // Kịch bản 2: Trả lời đúng và vẫn còn câu hỏi
     if (dapAn.dung) {
+      // Nếu trạng thái trước đó là 'that_bai', chuyển lại thành 'dang_hoc'
       if (progress.trang_thai === 'that_bai') {
         await db
           .update(tien_do)
@@ -301,34 +258,28 @@ export async function POST(req: Request) {
       });
     }
 
+    // Kịch bản 3: Trả lời sai và vẫn còn câu hỏi
     const newHeart = Math.max(progress.so_tim_con_lai - 1, 0);
+
+    // Nếu câu trả lời sai này làm hết tim
     if (newHeart === 0) {
       const lanLamMoi = (maxLan || 1) + 1;
-
       await db
         .update(tien_do)
         .set({ so_tim_con_lai: 5, trang_thai: 'that_bai' })
         .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
 
-      await db.insert(cau_tra_loi_nguoi_dung).values({
-        ma_nguoi_dung,
-        ma_bai_hoc,
-        ma_thu_thach,
-        ma_lua_chon,
-        dung: false,
-        lan_lam: lanLamMoi,
-      });
-
-      return NextResponse.json({
+      return NextResponse.json({ // Báo cho client reset
         correct: false,
         message: `Bạn đã hết tim. Hãy bắt đầu lại thử thách với 5 tim.`,
-        lan_lam_moi: lanLamMoi,
+        lan_lam_moi: lanLamMoi, // Giữ lại để client biết chuyển lượt
         so_tim_con_lai: 0,
         trang_thai: 'that_bai',
         reset: true,
       });
     }
 
+    // Nếu trả lời sai nhưng vẫn còn tim
     await db
       .update(tien_do)
       .set({ so_tim_con_lai: newHeart, trang_thai: 'dang_hoc' })

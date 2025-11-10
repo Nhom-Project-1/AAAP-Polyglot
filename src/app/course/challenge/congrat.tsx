@@ -14,20 +14,23 @@ interface Firework {
 interface CongratsProps {
   show: boolean
   diemMoi: number
+  message?: string
   onRestart?: () => void
 }
 
-export default function CongratModal({ show, diemMoi = 0, onRestart }: CongratsProps) {
+export default function CongratModal({ show, diemMoi = 0, message: finalMessage, onRestart }: CongratsProps) {
   const router = useRouter()
   const [isClient, setIsClient] = useState(false)
   const [fireworks, setFireworks] = useState<Firework[]>([])
   const [loading, setLoading] = useState(false)
   const [xp, setXp] = useState(diemMoi) // state lưu XP vừa parse
+  const [message, setMessage] = useState<string | undefined>()
 
   useEffect(() => {
     setIsClient(true)
     setXp(diemMoi) // cập nhật XP khi props thay đổi
-  }, [diemMoi])
+    setMessage(finalMessage)
+  }, [diemMoi, finalMessage])
 
   useEffect(() => {
     if (!show || !isClient) {
@@ -145,7 +148,11 @@ export default function CongratModal({ show, diemMoi = 0, onRestart }: CongratsP
         transition={{ delay: 0.6 }}
         className="text-lg text-pink-500 mb-8 z-10"
       >
-        <p className="text-lg mb-6">Bạn vừa kiếm được <span className="font-semibold">{xp} XP</span></p>
+        {message ? (
+          <p className="text-lg mb-6">{message}</p>
+        ) : (
+          <p className="text-lg mb-6">Bạn vừa kiếm được <span className="font-semibold">{xp} XP</span></p>
+        )}
       </motion.div>
 
       <div className="flex gap-10 z-10">

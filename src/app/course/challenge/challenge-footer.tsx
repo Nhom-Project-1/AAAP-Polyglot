@@ -13,6 +13,9 @@ interface FooterProps {
   onContinue: () => void
   resetKey?: number
   isOutOfHearts?: boolean 
+  onShowResult?: (show: boolean) => void
+  isLastQuestion?: boolean
+  onFinalMessage?: (msg: string) => void
 }
 
 function extractXP(message: string): number | null {
@@ -32,6 +35,9 @@ export default function Footer({
   onComplete,
   onContinue,
   resetKey,
+  onShowResult,
+  isLastQuestion,
+  onFinalMessage,
 }: FooterProps) {
   const [checked, setChecked] = useState(false)
   const [result, setResult] = useState<boolean | null>(null)
@@ -43,6 +49,8 @@ export default function Footer({
     setResult(null)
     setMessage("")
     setLoading(false)
+    // notify parent to hide result highlights when footer is reset
+    onShowResult?.(false)
   }, [resetKey])
 
   const handleCheck = async () => {
@@ -67,6 +75,17 @@ export default function Footer({
       setResult(data.correct)
       setMessage(data.message || "")
 
+      // notify parent to show result highlights
+      onShowResult?.(true)
+
+      if (isLastQuestion && data.correct) {
+        setMessage("Chính xác!")
+      }
+  
+      if (isLastQuestion && data.summaryMessage) {
+        onFinalMessage?.(String(data.summaryMessage))
+      }
+
       if (data.so_tim_con_lai !== undefined) {
         if (data.so_tim_con_lai === 0) {
           onUpdateHearts(0)
@@ -76,8 +95,14 @@ export default function Footer({
       }
 
       if (data.message) {
-        const xpThisRound = extractXP(data.message)
-        if (xpThisRound !== null) onComplete?.(xpThisRound)
+        // Prefer explicit diem_moi returned by the API. Fallback to parsing message
+        if (data.diem_moi !== undefined && data.diem_moi !== null) {
+          const xpNum = Number(data.diem_moi)
+          if (!Number.isNaN(xpNum)) onComplete?.(xpNum)
+        } else {
+          const xpThisRound = extractXP(data.message)
+          if (xpThisRound !== null) onComplete?.(xpThisRound)
+        }
       }
 
     } catch (err: any) {
@@ -103,11 +128,11 @@ export default function Footer({
 
   return (
     <footer className={`relative flex justify-end px-6 py-7 border-t border-gray-200 transition-colors duration-300 ${footerColor}`}>
-      {checked && (
-        <p className={`absolute left-20 bottom-10 text-lg ${messageColor} transition-all duration-300`}>
-          {message}
-        </p>
-      )}
+          {checked && (
+            <p className={`absolute left-20 bottom-10 text-lg ${messageColor} transition-all duration-300`}>
+              {message}
+            </p>
+          )}
 
       {!checked ? (
         <Button
@@ -128,6 +153,7 @@ export default function Footer({
             setChecked(false)
             setResult(null)
             setMessage("")
+            onShowResult?.(false)
             onContinue()
           }}
         >

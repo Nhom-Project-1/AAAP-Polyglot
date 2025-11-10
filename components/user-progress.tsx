@@ -13,7 +13,7 @@ type Lang = {
  export default function UserProgress() {
   const router = useRouter()
   const [lang, setLang] = useState<Lang | null>(null)
-  const score = 36
+  const [score, setScore] = useState(0)
 
   useEffect(() => {
     const fetchLang = async () => {
@@ -42,7 +42,21 @@ type Lang = {
       }
     }
 
+    const fetchTotalXP = async () => {
+      try {
+        const res = await fetch("/api/total-xp");
+        if (!res.ok) {
+          throw new Error("Không thể lấy tổng điểm XP");
+        }
+        const data = await res.json();
+        setScore(data.totalXP ?? 0);
+      } catch (error) {
+        console.error("Lỗi khi lấy tổng điểm XP:", error);
+      }
+    };
+
     fetchLang()
+    fetchTotalXP();
   }, [])
 
   if (!lang) return null

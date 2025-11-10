@@ -41,7 +41,9 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
   const [loading, setLoading] = useState(true)
   const [showExitModal, setShowExitModal] = useState(false)
   const [showCongrats, setShowCongrats] = useState(false)
+  const [showResult, setShowResult] = useState(false)
   const [diemMoi, setDiemMoi] = useState<number>(0)
+  const [completionMessage, setCompletionMessage] = useState<string | null>(null)
   const [footerResetKey, setFooterResetKey] = useState(0)
   const [showFail, setShowFail] = useState(false)
   const [isOutOfHearts, setIsOutOfHearts] = useState(false)
@@ -111,10 +113,11 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
     const handleContinue = () => {
       if (isOutOfHearts) return 
       setSelectedChoice(null)
+      setShowResult(false)
       if (currentIndex + 1 < challengeIds.length) {
         setCurrentIndex(currentIndex + 1)
       } else {
-        setShowCongrats(true)
+          setShowCongrats(true)
       }
     }
 
@@ -127,6 +130,8 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
     setIsOutOfHearts(false)
     setShowFail(false)
     setShowCongrats(false)
+      setShowResult(false)
+      setCompletionMessage(null)
   }
 
   return (
@@ -137,8 +142,8 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
         onClose={() => setShowExitModal(false)}
         onResetProgress={handleRestartChallenge} 
       />
-      <CongratModal show={showCongrats} diemMoi={diemMoi} onRestart={handleRestartChallenge} />
-      <Quiz challenge={currentChallenge} onSelect={handleSelect} selected={selectedChoice} showResult={false} />
+  <CongratModal show={showCongrats} diemMoi={diemMoi} message={completionMessage ?? undefined} onRestart={handleRestartChallenge} />
+      <Quiz challenge={currentChallenge} onSelect={handleSelect} selected={selectedChoice} showResult={showResult} />
       {maNguoiDung && currentChallenge && (
         <Footer
           key={footerResetKey}
@@ -153,6 +158,9 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
             if (val === 0) setIsOutOfHearts(true)
           }}
           onComplete={(xp) => setDiemMoi(xp)}
+          onShowResult={(v: boolean) => setShowResult(v)}
+          isLastQuestion={currentIndex === challengeIds.length - 1}
+          onFinalMessage={(m: string) => setCompletionMessage(m)}
           onContinue={handleContinue}
         />
       )}
