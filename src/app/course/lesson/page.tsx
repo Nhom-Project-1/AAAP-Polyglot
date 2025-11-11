@@ -8,6 +8,7 @@ import Layout from "@/components/layout"
 import UserProgress from "@/components/user-progress"
 import Crying from "@/components/ui/crying"
 import Loading from "@/components/ui/loading"
+import { Skeleton } from "@/components/ui/skeleton"
 
 type Unit = {
   ma_don_vi: number
@@ -33,6 +34,37 @@ type Vocab = {
   phien_am: string
   lien_ket_am_thanh: string
   vi_du: string
+}
+
+function LessonSkeleton() {
+  return (
+    <main className="relative p-6 min-h-screen">
+      {/* Header Skeleton */}
+      <div className="flex items-center gap-4 mb-4">
+        <Skeleton className="h-6 w-6 rounded-md" />
+        <Skeleton className="h-9 w-3/4 rounded-md" />
+      </div>
+
+      {/* Title Skeleton */}
+      <div className="text-center mt-8">
+        <Skeleton className="h-9 w-1/2 mx-auto rounded-md" />
+      </div>
+
+      {/* Vocab Cards Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="border rounded-xl p-4 shadow-md flex items-center justify-between">
+            <div className="w-full space-y-3">
+              <Skeleton className="h-6 w-1/2" />
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="h-4 w-full" />
+            </div>
+            <Skeleton className="h-6 w-6 rounded-full ml-4" />
+          </div>
+        ))}
+      </div>
+    </main>
+  );
 }
 
 function LessonPageContent() {
@@ -102,8 +134,7 @@ function LessonPageContent() {
     }
   };
 
-  if (loading)
-    return <p className="text-center mt-10">Đang tải dữ liệu...</p>
+  if (loading) return <LessonSkeleton />;
 
   if (error || !lesson || !unit)
     return (

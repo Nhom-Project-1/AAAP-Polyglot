@@ -22,6 +22,7 @@ export default function Header({ progress, hearts, onExitClick }: HeaderProps) {
       <div className="w-[60vw] bg-gray-200 h-4 rounded-full overflow-hidden">
         <motion.div
           className="h-full bg-pink-500"
+          initial={{ width: 0 }} 
           animate={{ width: `${progress * 100}%` }}
           transition={{ duration: 0.4, ease: "easeInOut" }}
         />

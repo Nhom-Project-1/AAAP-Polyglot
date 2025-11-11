@@ -7,6 +7,7 @@ import Header from "./challenge-header"
 import ExitModal from "./exit-modal"
 import CongratModal from "./congrat"
 import FailModal from "./fail"
+import { Skeleton } from "@/components/ui/skeleton"
 
 type LuaChonThuThach = {
   ma_lua_chon: number
@@ -24,6 +25,38 @@ type Challenge = {
   hinh_anh?: string
 }
 
+function ChallengeSkeleton() {
+  return (
+    <div className="flex flex-col min-h-screen">
+      {/* Header Skeleton */}
+      <header className="mt-8 mb-4 px-4 flex items-center justify-center gap-8 text-xl">
+        <Skeleton className="h-8 w-8 rounded-md" />
+        <Skeleton className="w-[60vw] h-4 rounded-full" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-8 w-8 rounded-full" />
+          <Skeleton className="h-7 w-6 rounded-md" />
+        </div>
+      </header>
+
+      {/* Quiz Skeleton */}
+      <main className="flex-1 flex flex-col items-center justify-center text-xl font-medium gap-6">
+        <Skeleton className="h-8 w-3/4 rounded-md" />
+        <div className="flex flex-col gap-3 w-full max-w-md mt-4">
+          <Skeleton className="h-12 w-full rounded-md" />
+          <Skeleton className="h-12 w-full rounded-md" />
+          <Skeleton className="h-12 w-full rounded-md" />
+          <Skeleton className="h-12 w-full rounded-md" />
+        </div>
+      </main>
+
+      {/* Footer Skeleton */}
+      <footer className="relative flex justify-end px-6 py-7 border-t border-gray-200">
+        <Skeleton className="h-[68px] w-[180px] rounded-lg mr-60" />
+      </footer>
+    </div>
+  );
+}
+
 export default function ChallengePageWrapper() {
   const searchParams = useSearchParams()
   const maBaiHoc = Number(searchParams.get("id"))
@@ -32,9 +65,8 @@ export default function ChallengePageWrapper() {
 }
 
 function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
-  const [challengeIds, setChallengeIds] = useState<number[]>([])
+  const [challenges, setChallenges] = useState<Challenge[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [currentChallenge, setCurrentChallenge] = useState<Challenge | null>(null)
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null)
   const [hearts, setHearts] = useState(5)
   const [maNguoiDung, setMaNguoiDung] = useState<number | null>(null)
@@ -42,7 +74,6 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
   const [showExitModal, setShowExitModal] = useState(false)
   const [showCongrats, setShowCongrats] = useState(false)
   const [showResult, setShowResult] = useState(false)
-  const [diemMoi, setDiemMoi] = useState<number>(0)
   const [completionMessage, setCompletionMessage] = useState<string | null>(null)
   const [footerResetKey, setFooterResetKey] = useState(0)
   const [showFail, setShowFail] = useState(false)
@@ -63,55 +94,36 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
     fetchUser()
   }, [])
 
-  // lấy danh sách challenge
+  // Lấy toàn bộ dữ liệu bài học một lần duy nhất
   useEffect(() => {
-    async function fetchChallengeIds() {
+    async function fetchLesson() {
       if (!maBaiHoc) return
+      setLoading(true)
       try {
         const res = await fetch(`/api/challenge?ma_bai_hoc=${maBaiHoc}`)
         const data = await res.json()
         if (data.challenges) {
-          const ids = data.challenges.map((c: any) => c.ma_thu_thach)
-          setChallengeIds(ids)
+          setChallenges(data.challenges)
         }
       } catch (err) {
         console.error("Lấy danh sách thử thách thất bại:", err)
-      }
-    }
-    fetchChallengeIds()
-  }, [maBaiHoc])
-
-  // lấy chi tiết thử thách hiện tại
-  useEffect(() => {
-    async function fetchChallengeDetail() {
-      if (challengeIds.length === 0) return
-      const id = challengeIds[currentIndex]
-      // Chỉ bật loading khi đang restart, không bật khi chuyển câu hỏi thông thường
-      if (isRestarting) {
-        setLoading(true)
-        setIsRestarting(false) // Reset lại trạng thái restarting
-      }
-      try {
-        const res = await fetch(`/api/challenge/${id}`)
-        const data = await res.json()
-        if (data.challenge) setCurrentChallenge(data.challenge)
-      } catch (err) {
-        console.error("Lấy chi tiết thử thách thất bại:", err)
       } finally {
         setLoading(false)
       }
     }
-    if (challengeIds.length > 0) fetchChallengeDetail()
-  }, [challengeIds, currentIndex])
+    fetchLesson()
+  }, [maBaiHoc])
 
   useEffect(() => {
     if (isOutOfHearts) {
       setShowFail(true)
     }
   }, [isOutOfHearts])
+  
+  const currentChallenge = challenges[currentIndex]
 
-  if (loading || !currentChallenge) {
-    return <p>Đang tải thử thách...</p>
+  if (loading || challenges.length === 0 || !currentChallenge) {
+    return <ChallengeSkeleton />
   }
 
   const handleSelect = (id: number) => {
@@ -122,7 +134,7 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
       if (isOutOfHearts) return 
       setSelectedChoice(null)
       setShowResult(false)
-      if (currentIndex + 1 < challengeIds.length) {
+      if (currentIndex + 1 < challenges.length) {
         setCurrentIndex(currentIndex + 1)
       } else {
           setShowCongrats(true)
@@ -133,8 +145,6 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
     setSelectedChoice(null)
     setIsRestarting(true) // Đánh dấu là đang restart
     setCurrentIndex(0)
-    setCurrentChallenge(null)
-    setDiemMoi(0)
     setFooterResetKey(prev => prev + 1)
     setHearts(5)
     setIsOutOfHearts(false)
@@ -144,13 +154,11 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
       setCompletionMessage(null)
   }
 
-  // Tính toán progress. Nếu đã show kết quả, tính cả câu hiện tại là đã hoàn thành.
   const progressValue = showResult
-    ? (currentIndex + 1) / challengeIds.length
-    : currentIndex / challengeIds.length
+    ? (currentIndex + 1) / challenges.length
+    : currentIndex / challenges.length
 
-  // Tìm đáp án đúng của câu hỏi hiện tại để thực hiện Optimistic UI
-  const correctChoiceId = currentChallenge?.lua_chon_thu_thach.find(
+  const correctChoiceId = currentChallenge?.lua_chon_thu_thach?.find(
     (choice) => choice.dung
   )?.ma_lua_chon
 
@@ -162,7 +170,7 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
         onClose={() => setShowExitModal(false)} 
         maBaiHoc={maBaiHoc}
       />
-  <CongratModal show={showCongrats} diemMoi={diemMoi} message={completionMessage ?? undefined} onRestart={handleRestartChallenge} />
+  <CongratModal show={showCongrats} message={completionMessage ?? undefined} onRestart={handleRestartChallenge} />
       <Quiz challenge={currentChallenge} onSelect={handleSelect} selected={selectedChoice} showResult={showResult} isChecking={isChecking} />
       {maNguoiDung && currentChallenge && (
         <Footer
@@ -179,9 +187,8 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
             setHearts(val)
             if (val === 0) setIsOutOfHearts(true)
           }}
-          onComplete={(xp) => setDiemMoi(xp)}
           onShowResult={(v: boolean) => setShowResult(v)}
-          isLastQuestion={currentIndex === challengeIds.length - 1}
+          isLastQuestion={currentIndex === challenges.length - 1}
           onFinalMessage={(m: string) => setCompletionMessage(m)}
           onContinue={handleContinue}
           onCheckingChange={(checking) => setIsChecking(checking)}

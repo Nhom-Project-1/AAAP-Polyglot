@@ -51,7 +51,7 @@ export default function UnitLesson() {
 
     const fetchUnits = async () => {
       try {
-        const res = await fetch(`api/languages/${languageId}/units`, {cache: "no-store"})
+        const res = await fetch(`/api/languages/${languageId}/units`, {cache: "no-store"})
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const data = await res.json()
 

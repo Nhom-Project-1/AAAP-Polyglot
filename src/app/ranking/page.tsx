@@ -5,8 +5,8 @@ import Layout from "@/components/layout"
 import { motion } from "framer-motion"
 import { Crown } from "lucide-react"
 import { useAuthStore } from "@/lib/store"
-import Loading from "@/components/ui/loading"
-import Crying from "@/components/ui/crying"
+import  Crying  from "@/components/ui/crying"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface RankingUser {
   ten_dang_nhap: string;
@@ -18,6 +18,40 @@ interface RankingData {
   myRank: number | null;
   myScore: number | null;
 }
+
+// Component Skeleton cho một hàng trong bảng xếp hạng
+const RankingRowSkeleton = () => (
+  <div className="flex items-center py-3 px-3 border-b border-gray-200">
+    {/* Hạng */}
+    <Skeleton className="h-8 w-8 rounded-full mr-4" />
+    {/* Tên người dùng */}
+    <Skeleton className="h-5 w-32 rounded flex-grow" />
+    {/* Điểm */}
+    <Skeleton className="h-5 w-16 rounded ml-auto" />
+  </div>
+);
+
+// Component Skeleton cho toàn bộ bảng xếp hạng
+const RankingSkeleton = () => (
+  <div className="w-full max-w-2xl bg-white p-8 rounded-2xl shadow-md animate-pulse">
+    {/* Tiêu đề */}
+    <Skeleton className="h-8 w-64 mx-auto mb-6" />
+
+    {/* Header bảng */}
+    <div className="flex items-center py-3 px-3 bg-pink-100 rounded-lg mb-2">
+      <Skeleton className="h-4 w-12 mr-4" />
+      <Skeleton className="h-4 w-24 flex-grow" />
+      <Skeleton className="h-4 w-12 ml-auto" />
+    </div>
+
+    {/* Các hàng dữ liệu */}
+    <RankingRowSkeleton />
+    <RankingRowSkeleton />
+    <RankingRowSkeleton />
+    <RankingRowSkeleton />
+    <RankingRowSkeleton />
+  </div>
+);
 
 export default function RankingPage() {
   const { user } = useAuthStore()
@@ -52,7 +86,9 @@ export default function RankingPage() {
   if (loading) {
     return (
       <Layout>
-        <div className="h-full w-full flex items-center justify-center"><p className="text-lg text-gray-500">Đang tải...</p></div>
+        <div className="flex justify-center min-h-screen px-4 py-12">
+          <RankingSkeleton />
+        </div>
       </Layout>
     );
   }

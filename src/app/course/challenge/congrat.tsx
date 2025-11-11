@@ -13,24 +13,21 @@ interface Firework {
 
 interface CongratsProps {
   show: boolean
-  diemMoi: number
   message?: string
   onRestart?: () => void
 }
 
-export default function CongratModal({ show, diemMoi = 0, message: finalMessage, onRestart }: CongratsProps) {
+export default function CongratModal({ show, message: finalMessage, onRestart }: CongratsProps) {
   const router = useRouter()
   const [isClient, setIsClient] = useState(false)
   const [fireworks, setFireworks] = useState<Firework[]>([])
   const [loading, setLoading] = useState(false)
-  const [xp, setXp] = useState(diemMoi) // state lưu XP vừa parse
-  const [message, setMessage] = useState<string | undefined>()
+  const [message, setMessage] = useState<string | undefined>(finalMessage)
 
   useEffect(() => {
-    setIsClient(true)
-    setXp(diemMoi) // cập nhật XP khi props thay đổi
+    setIsClient(true) 
     setMessage(finalMessage)
-  }, [diemMoi, finalMessage])
+  }, [finalMessage])
 
   useEffect(() => {
     if (!show || !isClient) {
@@ -136,7 +133,7 @@ export default function CongratModal({ show, diemMoi = 0, message: finalMessage,
       <motion.h1
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.3 }}
+        transition={{ delay: 0.3}}
         className="text-5xl font-bold text-pink-600 mb-3 z-10 drop-shadow-lg"
       >
         Hoàn thành
@@ -145,13 +142,18 @@ export default function CongratModal({ show, diemMoi = 0, message: finalMessage,
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
-        className="text-lg text-pink-500 mb-8 z-10"
+        transition={{ delay: 0.3, duration: 0.4 }}
+        className="text-lg text-pink-500 mb-8 z-10 min-h-[72px] flex items-center justify-center"
       >
-        {message ? (
-          <p className="text-lg mb-6 text-center max-w-md">{message}</p>
-        ) : (
-          <p className="text-lg mb-6">Bạn vừa được cộng <span className="font-semibold">{xp} XP</span>.</p>
+        {message && (
+          <motion.p
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="text-lg mb-6 text-center max-w-md"
+          >
+            {message}
+          </motion.p>
         )}
       </motion.div>
 

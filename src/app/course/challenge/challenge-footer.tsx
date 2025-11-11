@@ -10,7 +10,6 @@ interface FooterProps {
   correctChoiceId: number | undefined
   hearts: number
   onUpdateHearts: (newHearts: number) => void
-  onComplete?: (xpThisRound: number) => void
   onContinue: () => void
   resetKey?: number
   isOutOfHearts?: boolean 
@@ -19,12 +18,6 @@ interface FooterProps {
   onFinalMessage?: (msg: string) => void
   isChecking: boolean
   onCheckingChange: (checking: boolean) => void
-}
-
-function extractXP(message: string): number | null {
-  const match = message.match(/→ \+(\d+) XP/)
-  if (match && match[1]) return parseInt(match[1], 10)
-  return null
 }
 
 export default function Footer({
@@ -36,7 +29,6 @@ export default function Footer({
   hearts,
   isOutOfHearts,
   onUpdateHearts,
-  onComplete,
   onContinue,
   resetKey,
   onShowResult,
@@ -67,9 +59,17 @@ export default function Footer({
     setResult(isCorrect)
     onShowResult?.(true)
     if (isCorrect) {
-      setMessage("Chính xác!")
+      if (isLastQuestion) {
+        setMessage("Chính xác!")
+      } else {
+        setMessage("Chính xác! Hãy cố gắng ở câu tiếp theo nhé.")
+      }
     } else {
-      setMessage("Sai mất rồi.")
+      if (hearts > 1) {
+        setMessage("Sai mất rồi. Bạn bị -1 tim.")
+      } else {
+        setMessage("Sai mất rồi. Bạn đã hết tim!")
+      }
       // Giả định trừ tim ở UI
       onUpdateHearts(Math.max(hearts - 1, 0))
     }
@@ -102,6 +102,11 @@ export default function Footer({
         onFinalMessage?.(String(data.summaryMessage))
       }
 
+      // Nếu đây là câu hỏi cuối và đã hoàn thành, gọi onContinue để hiển thị modal chúc mừng ngay lập tức
+      if (isLastQuestion && data.hoan_thanh) {
+        onContinue();
+      }
+
       if (data.so_tim_con_lai !== undefined) {
         if (data.so_tim_con_lai === 0) {
           onUpdateHearts(0) // Đồng bộ lại số tim từ server
@@ -109,17 +114,6 @@ export default function Footer({
         // Nếu trả lời đúng, server sẽ trả về số tim không đổi, không cần cập nhật lại
         else if (data.so_tim_con_lai !== hearts) {
           onUpdateHearts(data.so_tim_con_lai) // Đồng bộ nếu có sai khác
-        }
-      }
-
-      if (data.message) {
-        // Prefer explicit diem_moi returned by the API. Fallback to parsing message
-        if (data.diem_moi !== undefined && data.diem_moi !== null) {
-          const xpNum = Number(data.diem_moi)
-          if (!Number.isNaN(xpNum)) onComplete?.(xpNum)
-        } else {
-          const xpThisRound = extractXP(data.message)
-          if (xpThisRound !== null) onComplete?.(xpThisRound)
         }
       }
 

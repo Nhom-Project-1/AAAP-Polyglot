@@ -67,6 +67,12 @@ export async function POST(req: NextRequest) {
       })
       .returning();
 
+    // Tạo bản ghi ban đầu trong bảng xếp hạng với 0 điểm cho người dùng mới
+    await db.insert(schema.bang_xep_hang).values({
+      ma_nguoi_dung: newUser.ma_nguoi_dung,
+      tong_diem_xp: 0,
+    }).onConflictDoNothing(); // Bỏ qua nếu đã tồn tại để đảm bảo an toàn
+
      const authToken = jwt.sign(
       {
         userId: newUser.ma_nguoi_dung,

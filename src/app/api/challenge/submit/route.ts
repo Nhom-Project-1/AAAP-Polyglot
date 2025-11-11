@@ -29,22 +29,19 @@ export async function POST(req: NextRequest) {
     // Xử lý logic thoát giữa chừng
     if (isExiting) {
       if (!ma_nguoi_dung || !ma_bai_hoc) {
-        return NextResponse.json(
-          { error: 'Thiếu thông tin để hủy tiến độ' },
-          { status: 400 },
-        )
+        return NextResponse.json({ error: 'Thiếu thông tin để hủy tiến độ' }, { status: 400 });
       }
-      // Đánh dấu lần làm bài hiện tại là thất bại để lần sau bắt đầu lại
-      await db
-        .update(tien_do)
-        .set({ trang_thai: 'that_bai', so_tim_con_lai: 5 })
-        .where(
-          and(
-            eq(tien_do.ma_nguoi_dung, ma_nguoi_dung),
-            eq(tien_do.ma_bai_hoc, ma_bai_hoc),
-          ),
-        )
-      return NextResponse.json({ message: "Tiến độ đã được hủy." }, { status: 200 })
+
+      // Khi thoát, set trạng thái là thất bại và reset tim về 5 cho lần sau
+      await db.update(tien_do).set({
+        trang_thai: 'that_bai',
+        so_tim_con_lai: 5
+      }).where(and(
+        eq(tien_do.ma_nguoi_dung, ma_nguoi_dung),
+        eq(tien_do.ma_bai_hoc, ma_bai_hoc)
+      ));
+
+      return NextResponse.json({ message: "Tiến độ đã được hủy." }, { status: 200 });
     }
 
     if (!ma_nguoi_dung || !ma_bai_hoc || !ma_lua_chon || !ma_thu_thach) {
@@ -69,7 +66,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const progress = await db.query.tien_do.findFirst({
+    let progress = await db.query.tien_do.findFirst({
       where: and(
         eq(tien_do.ma_nguoi_dung, ma_nguoi_dung),
         eq(tien_do.ma_bai_hoc, ma_bai_hoc),
@@ -83,10 +80,22 @@ export async function POST(req: NextRequest) {
     });
 
     if (!progress) {
-      return NextResponse.json(
-        { error: 'Người dùng chưa có tiến độ học cho bài này.' },
-        { status: 403 },
-      )
+      const newProgress = await db.insert(tien_do).values({
+        ma_nguoi_dung: ma_nguoi_dung,
+        ma_bai_hoc: ma_bai_hoc,
+        diem_kinh_nghiem: 0,
+        so_tim_con_lai: 5,
+        trang_thai: 'dang_hoc' // Bắt đầu với trạng thái 'đang học'
+      }).returning({
+        ma_tien_do: tien_do.ma_tien_do,
+        diem_kinh_nghiem: tien_do.diem_kinh_nghiem,
+        so_tim_con_lai: tien_do.so_tim_con_lai,
+        trang_thai: tien_do.trang_thai,
+      });
+      progress = newProgress[0];
+    }
+    if (!progress) {
+      return NextResponse.json({ error: 'Không thể tạo hoặc tìm tiến độ học.' }, { status: 500 });
     }
 
     const totalChallenges = await db
@@ -132,6 +141,13 @@ export async function POST(req: NextRequest) {
       (maxLan > 0 && daLamTrongLanMax >= total) || progress.trang_thai === 'that_bai'
     ) {
       lan_lam_hien_tai = maxLan + 1
+
+      // CẬP NHẬT QUAN TRỌNG: Chuyển trạng thái sang 'dang_hoc' ngay khi bắt đầu lượt mới
+      // và cập nhật lại biến progress để các logic sau sử dụng đúng trạng thái.
+      if (progress.trang_thai !== 'dang_hoc') {
+        await db.update(tien_do).set({ trang_thai: 'dang_hoc' }).where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
+        progress.trang_thai = 'dang_hoc';
+      }
     }
 
     // --- 3. Ghi nhận câu trả lời của người dùng ---
@@ -193,28 +209,32 @@ export async function POST(req: NextRequest) {
     // Kịch bản 1: Đã hoàn thành tất cả các câu hỏi trong lượt
     if (soDaLamHienTai >= total) {
       let finalHearts = progress.so_tim_con_lai;
-      if (!dapAn.dung && !daLamCauNay) { // Chỉ trừ tim nếu đây là lần đầu trả lời sai câu này
+      if (!dapAn.dung && !daLamCauNay) { 
         finalHearts = Math.max(progress.so_tim_con_lai - 1, 0);
       }
 
-      // Nếu hết tim ở câu cuối cùng -> vẫn tính là thất bại.
       if (finalHearts === 0) {
-        const lanLamMoi = (maxLan || 1) + 1;
-        await db
-          .update(tien_do)
-          .set({ trang_thai: 'that_bai', so_tim_con_lai: 5 }) // Reset tim cho lần mới
-          .where(eq(tien_do.ma_tien_do, progress.ma_tien_do))
+        // Nếu hết tim ở câu cuối -> Thất bại
+        await db.update(tien_do).set({
+          trang_thai: 'that_bai',
+          so_tim_con_lai: 5, // Reset tim cho lần sau
+        }).where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
 
-        // Trả về response thất bại, yêu cầu client reset
         return NextResponse.json({
           correct: false,
           message: "Sai mất rồi. Bạn đã hết tim!",
           so_tim_con_lai: 0,
           hoan_thanh: false,
           reset: true,
-          lan_lam_moi: lanLamMoi,
+          lan_lam_moi: (maxLan || 1) + 1,
         })
       }
+
+      // Nếu còn tim -> Hoàn thành
+      await db.update(tien_do).set({
+        trang_thai: 'hoan_thanh',
+        so_tim_con_lai: 5, // Reset tim cho lần sau
+      }).where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
 
       const prevMaxXPQuery = await db
         .select({ lan_lam: cau_tra_loi_nguoi_dung.lan_lam })
@@ -251,36 +271,24 @@ export async function POST(req: NextRequest) {
       const finalXP = soCauDung * 10
       const isNewMax = finalXP > prevMaxXP
 
-      // Chỉ cập nhật DB nếu có thành công (đúng ít nhất 1 câu)
-      if (soCauDung > 0) {
-        const updateData: {
-          trang_thai: 'hoan_thanh';
-          diem_kinh_nghiem?: number;
-          so_tim_con_lai: number;
-        } = {
-          trang_thai: 'hoan_thanh',
-          so_tim_con_lai: 5,
-        }
-        if (isNewMax) {
-          updateData.diem_kinh_nghiem = finalXP
-        }
-        await db
-          .update(tien_do)
-          .set(updateData)
-          .where(eq(tien_do.ma_tien_do, progress.ma_tien_do))
-
-        // --- CẬP NHẬT TIẾN ĐỘ MỤC TIÊU ---
-        const totalXpResult = await db
-          .select({ total: sum(tien_do.diem_kinh_nghiem) })
-          .from(tien_do)
-          .where(eq(tien_do.ma_nguoi_dung, ma_nguoi_dung));
-        
-        const newTotalXp = Number(totalXpResult[0]?.total ?? 0);
-
-        // Lấy các mục tiêu mà người dùng có thể đã đạt được
-        const achievableGoals = await db.select({ ma_muc_tieu: muc_tieu.ma_muc_tieu })
-          .from(muc_tieu)
-          .where(sql`${muc_tieu.diem_can_dat} <= ${newTotalXp}`);
+      // Cập nhật điểm kinh nghiệm trong bảng tien_do NẾU phá kỷ lục
+      if (isNewMax) {
+        await db.update(tien_do)
+          .set({ diem_kinh_nghiem: finalXP })
+          .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
+      }
+      // --- CẬP NHẬT TIẾN ĐỘ MỤC TIÊU VÀ BẢNG XẾP HẠNG (NẾU CÓ KỶ LỤC MỚI) ---
+      if (isNewMax) {
+          const totalXpResult = await db
+            .select({ total: sum(tien_do.diem_kinh_nghiem) })
+            .from(tien_do)
+            .where(eq(tien_do.ma_nguoi_dung, ma_nguoi_dung));
+          
+          const newTotalXp = Number(totalXpResult[0]?.total ?? 0);
+          // Lấy các mục tiêu mà người dùng có thể đã đạt được
+          const achievableGoals = await db.select({ ma_muc_tieu: muc_tieu.ma_muc_tieu })
+            .from(muc_tieu)
+            .where(sql`${muc_tieu.diem_can_dat} <= ${newTotalXp}`);
 
         if (achievableGoals.length > 0) {
           const achievableGoalIds = achievableGoals.map(g => g.ma_muc_tieu);
@@ -289,42 +297,35 @@ export async function POST(req: NextRequest) {
             .set({ hoan_thanh: true })
             .where(and(eq(tien_do_muc_tieu.ma_nguoi_dung, ma_nguoi_dung), inArray(tien_do_muc_tieu.ma_muc_tieu, achievableGoalIds)));
         }
-        // Cập nhật 'diem_hien_tai' cho TẤT CẢ các mục tiêu của người dùng
         await db.update(tien_do_muc_tieu)
           .set({ diem_hien_tai: newTotalXp })
           .where(eq(tien_do_muc_tieu.ma_nguoi_dung, ma_nguoi_dung));
 
-        // CẬP NHẬT BẢNG XẾP HẠNG (CHỈ CHO NGƯỜI DÙNG HIỆN TẠI)
-        // Thao tác này rất nhanh vì chỉ cập nhật 1 hàng.
         await db.insert(bang_xep_hang)
           .values({ ma_nguoi_dung: ma_nguoi_dung, tong_diem_xp: newTotalXp })
           .onConflictDoUpdate({ target: bang_xep_hang.ma_nguoi_dung, set: { tong_diem_xp: newTotalXp } });
       }
-      let summaryMessage = ""
-
-      if (isNewMax) {
-        summaryMessage = `Kỷ lục mới! Bạn đúng ${soCauDung}/${total} câu và đạt ${finalXP} XP.`;
+      
+      let summaryMessage = "";
+      
+      // Nếu đây là lần làm đầu tiên, HOẶC kỷ lục trước đó là 0 -> Đây là kỷ lục đầu tiên.
+      if (lan_lam_hien_tai === 1 || (isNewMax && prevMaxXP === 0)) {
+        summaryMessage = `Kỉ lục mới! Bạn làm đúng ${soCauDung}/${total} câu và được cộng ${finalXP} XP.`;
+      } else if (isNewMax) {
+        summaryMessage = `Kỉ lục mới! Bạn làm đúng ${soCauDung}/${total} câu và được cộng thêm ${finalXP - prevMaxXP} XP.`;
       } else {
-        // Nếu không phá kỷ lục nhưng vẫn đạt điểm tuyệt đối
-        if (soCauDung === total && total > 0) {
-          summaryMessage = `Phong độ đỉnh cao! Bạn đã duy trì thành tích tuyệt đối ${soCauDung}/${total} câu đúng.`;
-        } else if (lan_lam_hien_tai > 1) {
-          if (soCauDung < total / 2) {
-            summaryMessage = `Đừng nản lòng! Mỗi lần luyện tập là một bước tiến. Bạn đúng ${soCauDung}/${total} câu. Hãy thử lại nhé!`;
-          } else { // làm lại và đúng > 50%
-            summaryMessage = `Bạn đã luyện tập lại lần thứ ${lan_lam_hien_tai} và đúng ${soCauDung}/${total} câu. Hãy cố gắng phá kỉ lục ${prevMaxXP} XP ở lần sau nhé!`;
-          }
-        } else { // Trường hợp làm lần đầu nhưng không phá kỷ lục
-          summaryMessage = `Hoàn thành! Bạn đúng ${soCauDung}/${total} câu. Điểm cao nhất của bạn vẫn là ${prevMaxXP} XP.`;
+        if (finalXP === prevMaxXP && soCauDung === total) {
+          summaryMessage = `Bạn làm đúng ${soCauDung}/${total} câu. Hãy giữ vững phong độ nhé!`;
+        } else {
+          summaryMessage = `Làm tốt lắm! Bạn đúng ${soCauDung}/${total}. Hãy luyện tập lại để phá kỉ lục nhé!`;
         }
       }
 
       return NextResponse.json({
         correct: dapAn.dung,
-        message: dapAn.dung ? 'Chính xác!' : 'Sai mất rồi.',
+        message: dapAn.dung ? 'Chính xác!' : 'Sai mất rồi. Bạn bị -1 tim.',
         summaryMessage: summaryMessage,
         hoan_thanh: true,
-        diem_moi: isNewMax ? finalXP - prevMaxXP : 0,
         so_tim_con_lai: finalHearts,
         lan_tiep_theo: lan_lam_hien_tai + 1,
       })
@@ -332,17 +333,17 @@ export async function POST(req: NextRequest) {
 
     // Kịch bản 2: Trả lời đúng và vẫn còn câu hỏi
     if (dapAn.dung) {
-      // Nếu trạng thái trước đó là 'that_bai', chuyển lại thành 'dang_hoc'
-      if (progress.trang_thai === 'that_bai') {
+      // Nếu trả lời đúng, và bài học chưa được hoàn thành, set trạng thái là 'đang học'
+      if (progress.trang_thai !== 'hoan_thanh') {
         await db
           .update(tien_do)
           .set({ trang_thai: 'dang_hoc' })
-          .where(eq(tien_do.ma_tien_do, progress.ma_tien_do))
+          .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
       }
 
       return NextResponse.json({
         correct: true,
-        message: `Chính xác! Hãy cố gắng ở câu tiếp theo.`,
+        message: `Chính xác! Hãy cố gắng ở câu tiếp theo nhé.`,
         lan_lam: lan_lam_hien_tai,
         so_tim_con_lai: progress.so_tim_con_lai,
       });
@@ -351,29 +352,28 @@ export async function POST(req: NextRequest) {
     // Kịch bản 3: Trả lời sai và vẫn còn câu hỏi
     const newHeart = Math.max(progress.so_tim_con_lai - 1, 0);
 
-    // Nếu câu trả lời sai này làm hết tim
     if (newHeart === 0) {
       const lanLamMoi = (maxLan || 1) + 1;
-      await db
-        .update(tien_do)
-        .set({ so_tim_con_lai: 5, trang_thai: 'that_bai' })
-        .where(eq(tien_do.ma_tien_do, progress.ma_tien_do))
+      // Khi hết tim, set trạng thái là thất bại và reset tim về 5 cho lần sau
+      await db.update(tien_do).set({
+        trang_thai: 'that_bai',
+        so_tim_con_lai: 5
+      }).where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
 
-      return NextResponse.json({ // Báo cho client reset
+      return NextResponse.json({ 
         correct: false,
         message: `Bạn đã hết tim. Hãy bắt đầu lại thử thách với 5 tim.`,
-        lan_lam_moi: lanLamMoi, // Giữ lại để client biết chuyển lượt
+        lan_lam_moi: lanLamMoi, 
         so_tim_con_lai: 0,
         trang_thai: 'that_bai',
         reset: true,
       })
     }
 
-    // Nếu trả lời sai nhưng vẫn còn tim
     await db
       .update(tien_do)
       .set({ so_tim_con_lai: newHeart, trang_thai: 'dang_hoc' })
-      .where(eq(tien_do.ma_tien_do, progress.ma_tien_do))
+      .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
 
     return NextResponse.json({
       correct: false,

@@ -7,7 +7,7 @@ import UserProgress from "@/components/user-progress"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { useAuthStore } from "@/lib/store"
-import Loading from "@/components/ui/loading"
+import { Skeleton } from "@/components/ui/skeleton"
 
 type MucTieu = {
   ma_muc_tieu: number;
@@ -17,11 +17,21 @@ type MucTieu = {
   ten_muc_tieu: string;
 }
 
+// Component Skeleton cho một mục tiêu
+const GoalSkeleton = () => (
+  <div className="flex flex-col gap-2 mb-8">
+    <Skeleton className="h-5 w-48" />
+    <Skeleton className="h-4 w-full max-w-[500px]" />
+  </div>
+);
+
+
+
+
 export default function GoalPage() {
   const router = useRouter()
   const { user } = useAuthStore()
   const [mucTieuList, setMucTieuList] = useState<MucTieu[]>([])
-  // const [tongXP, setTongXP] = useState(0) // Không cần state này nữa
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -40,7 +50,6 @@ export default function GoalPage() {
 
         const goalsDataFromApi: any[] = await goalsRes.json();
 
-        // API đã trả về dữ liệu phẳng, chỉ cần tạo thêm tên mục tiêu
         const goalsData = goalsDataFromApi.map(goal => ({
           ...goal,
           ten_muc_tieu: `Kiếm được ${goal.diem_can_dat} XP`,
@@ -64,7 +73,11 @@ export default function GoalPage() {
             <h1 className="text-3xl font-semibold text-pink-500">Mục tiêu</h1>
 
             {loading ? (
-              <p className="text-lg text-gray-500">Đang tải...</p>
+              <div>
+                <GoalSkeleton />
+                <GoalSkeleton />
+                <GoalSkeleton />
+              </div>
             ) : error ? (
               <p className="text-red-500">{error}</p>
             ) : (
@@ -89,6 +102,7 @@ export default function GoalPage() {
                       <div className="w-full bg-gray-200 h-4 rounded-full overflow-hidden">
                         <motion.div
                           className="h-full bg-pink-500"
+                          initial={{ width: 0 }} 
                           animate={{ width: `${progress * 100}%` }}
                           transition={{ duration: 0.4, ease: "easeInOut" }}
                         />

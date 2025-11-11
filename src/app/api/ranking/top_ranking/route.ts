@@ -45,30 +45,25 @@ export async function GET(req: NextRequest) {
       .orderBy(desc(bang_xep_hang.tong_diem_xp))
       .limit(10);
 
-    let myRank: number | null = null;
-    let myScore: number | null = null;
-    
-    // Tìm thông tin của người dùng hiện tại trong bảng xếp hạng
-    const myInfoResult = await db.select({ tong_diem_xp: bang_xep_hang.tong_diem_xp }).from(bang_xep_hang).where(eq(bang_xep_hang.ma_nguoi_dung, ma_nguoi_dung as number));
+    // Tối ưu: Lấy điểm và thứ hạng của người dùng trong cùng một lúc
+    const myInfoQuery = db.select({ tong_diem_xp: bang_xep_hang.tong_diem_xp }).from(bang_xep_hang).where(eq(bang_xep_hang.ma_nguoi_dung, ma_nguoi_dung as number));
+
+    const myRankQuery = db.select({ count: sql<number>`count(*)` }).from(bang_xep_hang).where(sql`${bang_xep_hang.tong_diem_xp} > (SELECT tong_diem_xp FROM ${bang_xep_hang} WHERE ${bang_xep_hang.ma_nguoi_dung} = ${ma_nguoi_dung})`);
+
+    // Thực thi các truy vấn song song để tăng tốc độ
+    const [myInfoResult, myRankResult] = await Promise.all([myInfoQuery, myRankQuery]);
+
     const myInfo = myInfoResult[0];
+    const myScore = myInfo?.tong_diem_xp ?? 0; // Nếu không có thông tin, điểm là 0
 
-    if (myInfo) {
-      myScore = myInfo.tong_diem_xp;
-      // Đếm số người có điểm cao hơn để xác định thứ hạng
-      const higherRankCountResult = await db.select({ count: sql<number>`count(*)` }).from(bang_xep_hang).where(sql`${bang_xep_hang.tong_diem_xp} > ${myScore}`);
-      myRank = Number(higherRankCountResult[0].count) + 1;
-    } else {
-      // Xử lý trường hợp người dùng chưa có trong bảng xếp hạng (ví dụ: người mới)
-      myScore = 0;
-      const totalUsersCountResult = await db.select({ count: sql<number>`count(*)` }).from(bang_xep_hang);
-      myRank = Number(totalUsersCountResult[0].count) + 1;
-    }
+    // Nếu người dùng có trong bảng xếp hạng, myRankResult sẽ chứa số người có điểm cao hơn.
+    // Nếu không, truy vấn con sẽ trả về NULL, và so sánh `> NULL` sẽ không trả về hàng nào, count là 0.
+    // Chúng ta cần một truy vấn khác cho trường hợp người dùng chưa có điểm.
+    const higherRankCount = myInfo
+      ? Number(myRankResult[0].count)
+      : (await db.select({ count: sql<number>`count(*)` }).from(bang_xep_hang).where(sql`${bang_xep_hang.tong_diem_xp} > 0`))[0].count;
 
-    // Xử lý trường hợp không tìm thấy người dùng (dù rất hiếm khi xảy ra)
-    if (myRank === 0) {
-      myRank = null;
-      myScore = null;
-    }
+    const myRank = Number(higherRankCount) + 1;
 
     return NextResponse.json({
       topRanking,

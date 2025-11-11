@@ -62,8 +62,8 @@ export async function GET(req: NextRequest) {
       hoan_thanh: item.tien_do_muc_tieu?.hoan_thanh ?? false,
       // Tính toán phần trăm ở backend
       phan_tram_hoan_thanh: (item.tien_do_muc_tieu?.hoan_thanh ?? false)
-        ? 1 
-        : Math.min(tongXP / item.muc_tieu.diem_can_dat, 1)
+        ? 1
+        : item.muc_tieu.diem_can_dat > 0 ? Math.min(tongXP / item.muc_tieu.diem_can_dat, 1) : 0
     }));
 
     return NextResponse.json(responseData);
