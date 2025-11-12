@@ -1,15 +1,23 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Pencil, Trash, Plus, Search } from "lucide-react"
+import { Pencil, Trash, Plus, Search, X } from "lucide-react"
 import toast from "react-hot-toast"
+
+interface LuaChon {
+  ma_lua_chon: string
+  ma_thu_thach: string
+  noi_dung: string
+  dung: boolean
+}
 
 interface Challenge {
 ma_thu_thach: string
 ma_bai_hoc: string
 cau_hoi:string
 loai_thu_thach:string
+lua_chon: LuaChon[]
 }
 
 const mockData: Challenge[] = Array.from({ length: 100 }).map((_, i) => ({
@@ -17,6 +25,12 @@ const mockData: Challenge[] = Array.from({ length: 100 }).map((_, i) => ({
   ma_bai_hoc: `L${i + 1}`,
   cau_hoi: `Câu hỏi ${i + 1}`,
   loai_thu_thach: `Loại thử thách ${i + 1}`,
+  lua_chon: Array.from({ length: 4 }).map((__, j) => ({
+    ma_lua_chon: `LC${i * 4 + j + 1}`,
+    ma_thu_thach: `TT${i + 1}`,
+    noi_dung: `Đáp án ${j + 1} cho câu hỏi ${i + 1}`,
+    dung: j === 0, // Giả sử lựa chọn đầu tiên luôn đúng
+  })),
 }))
 
 export default function AdminChallenge() {
@@ -32,6 +46,12 @@ export default function AdminChallenge() {
     loai_thu_thach: ""
   })
   const [isDirty, setIsDirty] = useState(false)
+  const [expandedRow, setExpandedRow] = useState<string | null>(null)
+  const [modalChoices, setModalChoices] = useState<LuaChon[]>([])
+  // State for choice modal
+  const [choiceModalType, setChoiceModalType] = useState<"add" | "edit" | "delete" | null>(null)
+  const [editingChoice, setEditingChoice] = useState<LuaChon | null>(null)
+  const [parentChallengeId, setParentChallengeId] = useState<string | null>(null)
 
   const pageSize = 10
 
@@ -58,6 +78,7 @@ export default function AdminChallenge() {
     setModalType("edit")
     setErrors({ ma_bai_hoc: "", cau_hoi: "", loai_thu_thach: "" })
     setIsDirty(false)
+    setModalChoices(challenge.lua_chon)
   }
 
   const handleDelete = (challenge: Challenge) => {
@@ -108,6 +129,45 @@ export default function AdminChallenge() {
     setEditingChallenge(null)
     setErrors({ ma_bai_hoc: "", cau_hoi: "", loai_thu_thach: "" })
     setIsDirty(false)
+    setModalChoices([])
+    // Các lựa chọn sẽ được lưu cùng lúc với thử thách
+  }
+
+  const handleChoiceSave = (choice: LuaChon) => {
+    setData(prevData => {
+      return prevData.map(challenge => {
+        if (challenge.ma_thu_thach === parentChallengeId) {
+          const newChoices = [...challenge.lua_chon]
+          if (choiceModalType === 'edit' && editingChoice) {
+            // Edit existing choice
+            const index = newChoices.findIndex(c => c.ma_lua_chon === editingChoice.ma_lua_chon)
+            if (index !== -1) {
+              newChoices[index] = choice
+            }
+          } else {
+            // Add new choice
+            const newChoiceWithId = { ...choice, ma_lua_chon: `LC_new_${Date.now()}` }
+            newChoices.push(newChoiceWithId)
+          }
+          return { ...challenge, lua_chon: newChoices }
+        }
+        return challenge
+      })
+    })
+    toast.success(choiceModalType === 'edit' ? "Sửa lựa chọn thành công!" : "Thêm lựa chọn thành công!")
+    setChoiceModalType(null)
+  }
+
+  const handleChoiceDelete = (choiceToDelete: LuaChon, challengeId: string) => {
+    setData(prevData => prevData.map(challenge => {
+      if (challenge.ma_thu_thach === challengeId) {
+        const newChoices = challenge.lua_chon.filter(c => c.ma_lua_chon !== choiceToDelete.ma_lua_chon)
+        return { ...challenge, lua_chon: newChoices }
+      }
+      return challenge
+    }))
+    toast.success("Xóa lựa chọn thành công!")
+    setChoiceModalType(null)
   }
 
   return (
@@ -132,6 +192,7 @@ export default function AdminChallenge() {
               setModalType("add")
               setErrors({ ma_bai_hoc: "", cau_hoi: "", loai_thu_thach: "" })
               setIsDirty(false)
+              setModalChoices([])
             }}
             className="flex items-center gap-2 bg-pink-500 text-white px-4 py-2 rounded-md hover:bg-pink-600 cursor-pointer"
           >
@@ -153,22 +214,80 @@ export default function AdminChallenge() {
             </tr>
           </thead>
           <tbody>
-            {currentData.map(challenge => (
-              <tr key={challenge.ma_thu_thach} className="hover:bg-pink-50">
-                <td className="px-4 py-2">{challenge.ma_thu_thach}</td>
-                <td className="px-4 py-2">{challenge.ma_bai_hoc}</td>
-                <td className="px-4 py-2">{highlightText(challenge.cau_hoi)}</td>
-                <td className="px-4 py-2">{challenge.loai_thu_thach}</td>
-                <td className="px-4 py-2 flex gap-2">
-                  <button onClick={() => handleEdit(challenge)} className="p-1 rounded-md bg-yellow-100 hover:bg-yellow-200 cursor-pointer">
-                    <Pencil className="w-4 h-4 text-yellow-600" />
-                  </button>
-                  <button onClick={() => handleDelete(challenge)} className="p-1 rounded-md bg-red-100 hover:bg-red-200 cursor-pointer">
-                    <Trash className="w-4 h-4 text-red-600" />
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {currentData.map(challenge => {
+              const isExpanded = expandedRow === challenge.ma_thu_thach
+              return (
+                <React.Fragment key={challenge.ma_thu_thach}>
+                  <tr
+                    className="hover:bg-pink-50 cursor-pointer"
+                    onClick={() => setExpandedRow(isExpanded ? null : challenge.ma_thu_thach)}
+                  >
+                    <td className="px-4 py-2">{challenge.ma_thu_thach}</td>
+                    <td className="px-4 py-2">{challenge.ma_bai_hoc}</td>
+                    <td className="px-4 py-2">{highlightText(challenge.cau_hoi)}</td>
+                    <td className="px-4 py-2">{challenge.loai_thu_thach}</td>
+                    <td className="px-4 py-2 flex gap-2">
+                      <button onClick={(e) => { e.stopPropagation(); handleEdit(challenge); }} className="p-1 rounded-md bg-yellow-100 hover:bg-yellow-200 cursor-pointer">
+                        <Pencil className="w-4 h-4 text-yellow-600" />
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); handleDelete(challenge); }} className="p-1 rounded-md bg-red-100 hover:bg-red-200 cursor-pointer">
+                        <Trash className="w-4 h-4 text-red-600" />
+                      </button>
+                    </td>
+                  </tr>
+                  {isExpanded && (
+                    <tr>
+                      <td colSpan={5} className="p-0">
+                        <div className="p-4 bg-pink-50/60">
+                          <h4 className="font-semibold text-slate-600 mb-2 ml-1">Các lựa chọn:</h4>
+                          <table className="w-full text-sm bg-white rounded-lg shadow-md border border-pink-100">
+                            <thead className="bg-pink-100 text-slate-600">
+                              <tr>
+                                <th className="px-3 py-1 text-left">Mã lựa chọn</th>
+                                <th className="px-3 py-1 text-left">Mã thử thách</th>
+                                <th className="px-3 py-1 text-left">Nội dung</th>
+                                <th className="px-3 py-1 text-left">Đúng/Sai</th>
+                                <th className="px-3 py-1 text-left">Hành động</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {challenge.lua_chon.length > 0 ? challenge.lua_chon.map((lc, index) => (
+                                <tr key={lc.ma_lua_chon} className={`border-b border-pink-100 last:border-b-0 ${index % 2 !== 0 ? 'bg-pink-50/50' : 'bg-white'}`}>
+                                  <td className="px-3 py-2">{lc.ma_lua_chon}</td>
+                                  <td className="px-3 py-2">{lc.ma_thu_thach}</td>
+                                  <td className="px-3 py-2">{lc.noi_dung}</td>
+                                  <td className="px-3 py-2">{lc.dung ? <span className="text-green-600 font-semibold">Đúng</span> : <span className="text-red-600">Sai</span>}</td>
+                                  <td className="px-3 py-2 flex gap-2">
+                                    <button onClick={() => { setEditingChoice(lc); setParentChallengeId(challenge.ma_thu_thach); setChoiceModalType('edit'); }} className="p-1 rounded-md bg-yellow-100 hover:bg-yellow-200 cursor-pointer">
+                                      <Pencil className="w-3 h-3 text-yellow-600" />
+                                    </button>
+                                    <button onClick={() => { setEditingChoice(lc); setParentChallengeId(challenge.ma_thu_thach); setChoiceModalType('delete'); }} className="p-1 rounded-md bg-red-100 hover:bg-red-200 cursor-pointer">
+                                      <Trash className="w-3 h-3 text-red-600" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              )) : (
+                                <tr>
+                                  <td colSpan={5} className="text-center py-3 text-gray-500 italic">Chưa có lựa chọn nào.</td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                          <div className="mt-3">
+                            <button
+                              onClick={() => { setParentChallengeId(challenge.ma_thu_thach); setEditingChoice(null); setChoiceModalType('add'); }}
+                              className="flex items-center gap-1 text-sm text-pink-600 hover:underline"
+                            >
+                              <Plus size={14} /> Thêm lựa chọn
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              )
+            })}
             {currentData.length === 0 && (
               <tr>
                 <td colSpan={6} className="text-center py-4 text-slate-500">Không có kết quả</td>
@@ -225,7 +344,7 @@ export default function AdminChallenge() {
       <AnimatePresence>
         {modalType && (
           <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <motion.div initial={{scale:0.9}} animate={{scale:1}} exit={{scale:0.9}} className="bg-white rounded-md p-6 w-96 shadow-lg">
+            <motion.div initial={{scale:0.9}} animate={{scale:1}} exit={{scale:0.9}} className="bg-white rounded-md p-6 w-[600px] shadow-lg max-h-[90vh] overflow-y-auto">
               {/* Thêm / Sửa */}
               {(modalType === "add" || modalType === "edit") && (
                 <>
@@ -246,6 +365,53 @@ export default function AdminChallenge() {
                       <input id="type" type="text" defaultValue={editingChallenge?.loai_thu_thach || ""} className="border px-3 py-2 rounded-md w-full" onChange={() => setIsDirty(true)} />
                       {errors.loai_thu_thach && <span className="text-red-500 text-sm mt-1">{errors.loai_thu_thach}</span>}
                     </div>
+
+                    {/* Quản lý lựa chọn */}
+                    <div className="mt-4 border-t pt-4">
+                      <h4 className="text-md font-semibold mb-2 text-gray-800">Các lựa chọn</h4>
+                      <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                        {modalChoices.map((choice, index) => (
+                          <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded-md">
+                            <input
+                              type="text"
+                              placeholder="Nội dung lựa chọn"
+                              value={choice.noi_dung}
+                              onChange={(e) => {
+                                const newChoices = [...modalChoices]
+                                newChoices[index].noi_dung = e.target.value
+                                setModalChoices(newChoices)
+                                setIsDirty(true)
+                              }}
+                              className="border px-2 py-1 rounded-md w-full text-sm"
+                            />
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="checkbox"
+                                checked={choice.dung}
+                                onChange={(e) => {
+                                  const newChoices = [...modalChoices]
+                                  newChoices[index].dung = e.target.checked
+                                  setModalChoices(newChoices)
+                                  setIsDirty(true)
+                                }}
+                                className="h-4 w-4 text-pink-500 border-gray-300 rounded focus:ring-pink-400 cursor-pointer"
+                              />
+                              <label className="text-sm">Đúng</label>
+                            </div>
+                            <button onClick={() => {
+                                setModalChoices(modalChoices.filter((_, i) => i !== index))
+                                setIsDirty(true)
+                              }} className="p-1 text-red-500 hover:text-red-700">
+                              <X size={16} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <button onClick={() => {
+                        setModalChoices([...modalChoices, { ma_lua_chon: `new_${Date.now()}`, ma_thu_thach: editingChallenge?.ma_thu_thach || 'new', noi_dung: '', dung: false }])
+                        setIsDirty(true)
+                      }} className="mt-2 text-sm text-pink-600 hover:underline cursor-pointer">+ Thêm lựa chọn</button>
+                    </div>
                   </div>
                   <div className="flex justify-end gap-2 mt-4">
                     <button onClick={() => setModalType(null)} className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 cursor-pointer">Hủy</button>
@@ -261,6 +427,7 @@ export default function AdminChallenge() {
                             ma_bai_hoc: maBaiHocInput,
                             cau_hoi: cauInput,
                             loai_thu_thach: loaiInput,
+                            lua_chon: modalChoices,
                           },
                           modalType === "edit"
                         )
@@ -277,7 +444,7 @@ export default function AdminChallenge() {
               {modalType === "delete" && challengeToDelete && (
                 <>
                   <h3 className="text-lg font-semibold mb-4 text-red-600">Xác nhận xóa</h3>
-                  <p className="mb-4">Bạn có chắc muốn xóa từ vựng <strong>{challengeToDelete.cau_hoi}</strong> không?</p>
+                  <p className="mb-4">Bạn có chắc muốn xóa thử thách <strong>{challengeToDelete.cau_hoi}</strong> không?</p>
                   <div className="flex justify-end gap-2">
                     <button onClick={() => setModalType(null)} className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 cursor-pointer">Hủy</button>
                     <button
@@ -285,6 +452,74 @@ export default function AdminChallenge() {
                         setData(prev => prev.filter(c => c.ma_thu_thach !== challengeToDelete.ma_thu_thach))
                         setModalType(null)
                         toast.success("Xóa thành công!")
+                      }}
+                      className="px-4 py-2 rounded-md bg-red-500 text-white hover:bg-red-600 cursor-pointer"
+                    >
+                      Xóa
+                    </button>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal for Choices */}
+      <AnimatePresence>
+        {choiceModalType && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} className="bg-white rounded-md p-6 w-96 shadow-lg">
+              {(choiceModalType === 'add' || choiceModalType === 'edit') && (
+                <>
+                  <h3 className="text-lg font-semibold mb-4">{choiceModalType === 'edit' ? 'Sửa lựa chọn' : 'Thêm lựa chọn'}</h3>
+                  <form onSubmit={(e) => {
+                    e.preventDefault()
+                    const formData = new FormData(e.currentTarget)
+                    const noi_dung = formData.get('noi_dung') as string
+                    const dung = (formData.get('dung') as string) === 'on'
+                    
+                    if (!noi_dung.trim()) {
+                      toast.error("Nội dung không được để trống")
+                      return
+                    }
+
+                    handleChoiceSave({
+                      ma_lua_chon: editingChoice?.ma_lua_chon || '',
+                      ma_thu_thach: parentChallengeId || '',
+                      noi_dung,
+                      dung,
+                    })
+                  }}>
+                    <div className="flex flex-col gap-4">
+                      <div className="flex flex-col">
+                        <label htmlFor="choice_content" className="mb-1 text-sm font-medium text-gray-700">Nội dung</label>
+                        <input id="choice_content" name="noi_dung" type="text" defaultValue={editingChoice?.noi_dung || ''} className="border px-3 py-2 rounded-md w-full" />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input id="choice_correct" name="dung" type="checkbox" defaultChecked={editingChoice?.dung || false} className="h-4 w-4 text-pink-500 border-gray-300 rounded focus:ring-pink-400 cursor-pointer" />
+                        <label htmlFor="choice_correct" className="text-sm font-medium text-pink-500 cursor-pointer">Là đáp án đúng</label>
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 mt-6">
+                      <button type="button" onClick={() => setChoiceModalType(null)} className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 cursor-pointer">Hủy</button>
+                      <button type="submit" className="px-4 py-2 rounded-md bg-pink-500 text-white hover:bg-pink-600 cursor-pointer">Lưu</button>
+                    </div>
+                  </form>
+                </>
+              )}
+
+              {choiceModalType === 'delete' && editingChoice && parentChallengeId && (
+                <>
+                  <h3 className="text-lg font-semibold mb-4 text-red-600">Xác nhận xóa</h3>
+                  <p className="mb-4">Bạn có chắc muốn xóa lựa chọn "<strong>{editingChoice.noi_dung}</strong>" không?</p>
+                  <div className="flex justify-end gap-2">
+                    <button onClick={() => setChoiceModalType(null)} className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 cursor-pointer">Hủy</button>
+                    <button
+                      onClick={() => {
+                        if (editingChoice && parentChallengeId) {
+                          handleChoiceDelete(editingChoice, parentChallengeId)
+                        }
                       }}
                       className="px-4 py-2 rounded-md bg-red-500 text-white hover:bg-red-600 cursor-pointer"
                     >

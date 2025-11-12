@@ -150,7 +150,7 @@ export default function AdminUnit() {
           </thead>
           <tbody>
             {currentData.map(unit => (
-              <tr key={unit.ma_ngon_ngu} className="hover:bg-pink-50">
+              <tr key={unit.ma_unit} className="hover:bg-pink-50">
                 <td className="px-4 py-2">{unit.ma_unit}</td>
                 <td className="px-4 py-2">{unit.ma_ngon_ngu}</td>
                 <td className="px-4 py-2">{highlightText(unit.ten_unit)}</td>

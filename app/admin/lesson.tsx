@@ -149,7 +149,7 @@ const handleSave = (lesson: Lesson, isEdit: boolean) => {
           </thead>
           <tbody>
             {currentData.map(lesson => (
-              <tr key={lesson.ma_unit} className="hover:bg-pink-50">
+              <tr key={lesson.ma_bai_hoc} className="hover:bg-pink-50">
                 <td className="px-4 py-2">{lesson.ma_bai_hoc}</td>
                 <td className="px-4 py-2">{lesson.ma_unit}</td>
                 <td className="px-4 py-2">{highlightText(lesson.ten_bai_hoc)}</td>
