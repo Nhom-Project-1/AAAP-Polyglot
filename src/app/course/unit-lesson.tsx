@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { useRouter, useSearchParams } from "next/navigation"
+import { Skeleton } from "@/components/ui/skeleton"
 import Crying from "@/components/ui/crying"
 
 type Lesson = {
@@ -79,7 +80,29 @@ export default function UnitLesson() {
 
     fetchUnits()
   }, [languageId, languageIdStr])
-  if (!hasFetched) return null
+  if (!hasFetched) {
+    return (
+      <div className="space-y-16 mt-8 pl-6">
+        {[...Array(2)].map((_, unitIndex) => (
+          <div key={unitIndex} className="flex flex-col items-center">
+            {/* Skeleton for Unit Header */}
+            <Skeleton className="h-12 w-1/3 mb-10" />
+
+            {/* Skeleton for Lessons */}
+            <div className="relative w-full flex flex-col items-center space-y-28">
+              {[...Array(3)].map((_, lessonIndex) => {
+                const direction = unitIndex % 2 === 0 ? 1 : -1
+                const waveOffset = Math.sin(lessonIndex * 1.1) * 120 * direction
+                return (
+                  <Skeleton key={lessonIndex} className="w-20 h-20 rounded-full" style={{ transform: `translateX(${waveOffset}px)` }} />
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
   if (error)
     return (
       <div className="flex flex-col items-center justify-center mt-16">

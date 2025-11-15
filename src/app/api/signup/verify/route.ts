@@ -66,7 +66,40 @@ export async function POST(req: NextRequest) {
         ho_ten: fullName,
       })
       .returning();
+    const newUserId = newUser.ma_nguoi_dung;
+    try {
+      // ✅ Tạo bản ghi bảng xếp hạng (nếu chưa có)
+      await db
+        .insert(schema.bang_xep_hang)
+        .values({
+          ma_nguoi_dung: newUserId,
+          tong_diem_xp: 0,
+        })
+        .onConflictDoNothing();
 
+      const goals = await db.select().from(schema.muc_tieu);
+
+      if (goals.length > 0) {
+        console.log("🧍 newUserId:", newUserId);
+        const insertValues = goals.map(goal => ({
+          ma_nguoi_dung: newUserId,
+          ma_muc_tieu: goal.ma_muc_tieu,
+          diem_hien_tai: 0,
+          hoan_thanh: false,
+        }));
+        console.log("📦 Dữ liệu sắp insert:", insertValues);
+
+        const result = await db
+          .insert(schema.tien_do_muc_tieu)
+          .values(insertValues)
+          .onConflictDoNothing();
+      }
+      console.log(
+        `🎯 Đã khởi tạo bảng xếp hạng & ${goals.length} mục tiêu cho người dùng mới: ${newUserId}`
+      );
+    } catch (initErr) {
+      console.error("⚠️ Lỗi khi khởi tạo bảng xếp hạng hoặc mục tiêu:", initErr);
+    }
      const authToken = jwt.sign(
       {
         userId: newUser.ma_nguoi_dung,

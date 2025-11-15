@@ -151,7 +151,7 @@ export default function CongratModal({ show, diemMoi = 0, message: finalMessage,
         {message ? (
           <p className="text-lg mb-6 text-center max-w-md">{message}</p>
         ) : (
-          <p className="text-lg mb-6">Bạn vừa được cộng <span className="font-semibold">{xp} XP</span>.</p>
+          <p className="text-lg mb-6">Chúng mình đang tính điểm cho bạn 😎, đợi xíu nhé…</p>
         )}
       </motion.div>
 

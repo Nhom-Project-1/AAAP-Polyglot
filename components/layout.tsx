@@ -29,7 +29,7 @@ const {setIsLoggedIn, setUser, setIsAdmin} = useAuthStore()
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header onLogout={handleLogout} />
+      <Header onLogoutAction={handleLogout} />
       <div className="flex-1 px-14 py-8">{children}</div>
       <Footer />
     </div>

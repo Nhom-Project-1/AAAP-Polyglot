@@ -60,22 +60,10 @@ export default function Footer({
   const handleCheck = async () => {
     if (!luaChonDaChon || isChecking || hearts <= 0 || !correctChoiceId) return
 
-    // --- Optimistic UI Update ---
-    // 1. Giả định kết quả và cập nhật giao diện ngay lập tức
-    const isCorrect = luaChonDaChon === correctChoiceId
-    setChecked(true)
-    setResult(isCorrect)
-    onShowResult?.(true)
-    if (isCorrect) {
-      setMessage("Chính xác!")
-    } else {
-      setMessage("Sai mất rồi.")
-      // Giả định trừ tim ở UI
-      onUpdateHearts(Math.max(hearts - 1, 0))
-    }
-    // -----------------------------
+    // Bắt đầu quá trình kiểm tra, vô hiệu hóa các nút khác
+    onCheckingChange(true)
 
-    // 2. Gửi yêu cầu lên server ở chế độ nền
+    // Gửi yêu cầu lên server và chờ kết quả
     try {
       const res = await fetch("/api/challenge/submit", {
         method: "POST",
@@ -91,25 +79,19 @@ export default function Footer({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || "Lỗi khi nộp đáp án")
 
-      // Cập nhật lại message và các thông tin khác từ server nếu cần
-      // (Trong trường hợp này, message giả định đã đủ tốt)
-      if (data.message && data.message !== message) {
-        setMessage(data.message)
-      }
-      
-      // Luôn cập nhật summary message nếu API trả về
-      if (data.summaryMessage) {
-        onFinalMessage?.(String(data.summaryMessage))
+      // --- Cập nhật giao diện DỰA TRÊN kết quả từ server ---
+      setResult(data.correct)
+      onShowResult?.(true)
+      setMessage(data.message || (data.correct ? "Chính xác!" : "Sai mất rồi."))
+      setChecked(true)
+
+      // Cập nhật số tim từ server (nguồn chân lý duy nhất)
+      if (data.so_tim_con_lai !== undefined) {
+        onUpdateHearts(data.so_tim_con_lai)
       }
 
-      if (data.so_tim_con_lai !== undefined) {
-        if (data.so_tim_con_lai === 0) {
-          onUpdateHearts(0) // Đồng bộ lại số tim từ server
-        }
-        // Nếu trả lời đúng, server sẽ trả về số tim không đổi, không cần cập nhật lại
-        else if (data.so_tim_con_lai !== hearts) {
-          onUpdateHearts(data.so_tim_con_lai) // Đồng bộ nếu có sai khác
-        }
+      if (data.summaryMessage) {
+        onFinalMessage?.(String(data.summaryMessage))
       }
 
       if (data.message) {
@@ -125,6 +107,8 @@ export default function Footer({
 
     } catch (err: any) {
       setMessage(err.message || "Không thể gửi đáp án")
+    } finally {
+      onCheckingChange(false) // Kết thúc quá trình kiểm tra
     }
   }
 
@@ -140,6 +124,15 @@ export default function Footer({
     footerColor = "bg-red-100"
     continueButtonColor = "bg-red-500 hover:bg-red-600 text-white"
     messageColor = "text-red-700 font-semibold"
+  }
+
+  const handleNext = () => {
+    if (isOutOfHearts) return;
+    setChecked(false);
+    setResult(null);
+    setMessage("");
+    onShowResult?.(false);
+    onContinue();
   }
 
   return (
@@ -164,14 +157,7 @@ export default function Footer({
         <Button
           className={`px-8 py-6 text-lg rounded-lg mr-60 cursor-pointer transition-all duration-200 border-0 ${continueButtonColor}`}
           disabled={isOutOfHearts}
-          onClick={() => {
-            if (isOutOfHearts) return
-            setChecked(false)
-            setResult(null)
-            setMessage("")
-            onShowResult?.(false)
-            onContinue()
-          }}
+          onClick={handleNext}
         >
           Tiếp tục
         </Button>

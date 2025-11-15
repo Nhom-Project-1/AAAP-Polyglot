@@ -163,8 +163,12 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    const daLamCount = await db
-      .select({ da_lam: count(cau_tra_loi_nguoi_dung.id) })
+    // Tối ưu hóa: Gộp 2 truy vấn count() thành 1 để giảm tải DB
+    const currentAttemptStats = await db
+      .select({
+        soDaLam: count(cau_tra_loi_nguoi_dung.id),
+        soDung: sql<number>`COUNT(CASE WHEN ${cau_tra_loi_nguoi_dung.dung} = true THEN 1 END)`.mapWith(Number),
+      })
       .from(cau_tra_loi_nguoi_dung)
       .where(
         and(
@@ -173,22 +177,7 @@ export async function POST(req: NextRequest) {
           eq(cau_tra_loi_nguoi_dung.lan_lam, lan_lam_hien_tai),
         ),
       );
-    const soDaLamHienTai = daLamCount[0]?.da_lam ?? 0
-
-    // --- 4. Xử lý logic dựa trên kết quả và tiến độ ---
-
-    const dungCount = await db
-      .select({ so_dung: count(cau_tra_loi_nguoi_dung.id) })
-      .from(cau_tra_loi_nguoi_dung)
-      .where(
-        and(
-          eq(cau_tra_loi_nguoi_dung.ma_bai_hoc, ma_bai_hoc),
-          eq(cau_tra_loi_nguoi_dung.ma_nguoi_dung, ma_nguoi_dung),
-          eq(cau_tra_loi_nguoi_dung.lan_lam, lan_lam_hien_tai),
-          eq(cau_tra_loi_nguoi_dung.dung, true),
-        ),
-      );
-    const soCauDung = dungCount[0]?.so_dung ?? 0
+    const { soDaLam: soDaLamHienTai, soDung: soCauDung } = currentAttemptStats[0] ?? { soDaLam: 0, soDung: 0 };
 
     // Kịch bản 1: Đã hoàn thành tất cả các câu hỏi trong lượt
     if (soDaLamHienTai >= total) {
@@ -208,7 +197,7 @@ export async function POST(req: NextRequest) {
         // Trả về response thất bại, yêu cầu client reset
         return NextResponse.json({
           correct: false,
-          message: "Sai mất rồi. Bạn đã hết tim!",
+          message: "Sai mất rồi. Bạn đã hết tim!💔",
           so_tim_con_lai: 0,
           hoan_thanh: false,
           reset: true,
@@ -303,25 +292,25 @@ export async function POST(req: NextRequest) {
       let summaryMessage = ""
 
       if (isNewMax) {
-        summaryMessage = `Kỷ lục mới! Bạn đúng ${soCauDung}/${total} câu và đạt ${finalXP} XP.`;
+        summaryMessage = `Kỷ lục mới!😍🤩🥳 Bạn đúng ${soCauDung}/${total} câu và đạt ${finalXP} XP.`;
       } else {
         // Nếu không phá kỷ lục nhưng vẫn đạt điểm tuyệt đối
         if (soCauDung === total && total > 0) {
-          summaryMessage = `Phong độ đỉnh cao! Bạn đã duy trì thành tích tuyệt đối ${soCauDung}/${total} câu đúng.`;
+          summaryMessage = `Phong độ đỉnh cao!😍🤩🥳 Bạn đã duy trì thành tích tuyệt đối ${soCauDung}/${total} câu đúng.`;
         } else if (lan_lam_hien_tai > 1) {
           if (soCauDung < total / 2) {
-            summaryMessage = `Đừng nản lòng! Mỗi lần luyện tập là một bước tiến. Bạn đúng ${soCauDung}/${total} câu. Hãy thử lại nhé!`;
+            summaryMessage = `Đừng nản lòng! Mỗi lần luyện tập là một bước tiến.🐾🦾😉 Bạn đúng ${soCauDung}/${total} câu. Hãy thử lại nhé!`;
           } else { // làm lại và đúng > 50%
-            summaryMessage = `Bạn đã luyện tập lại lần thứ ${lan_lam_hien_tai} và đúng ${soCauDung}/${total} câu. Hãy cố gắng phá kỉ lục ${prevMaxXP} XP ở lần sau nhé!`;
+            summaryMessage = `Bạn đã luyện tập lại lần thứ ${lan_lam_hien_tai} và đúng ${soCauDung}/${total} câu. Hãy cố gắng phá kỉ lục ${prevMaxXP} XP ở lần sau nhé!🐾🦾😘`;
           }
         } else { // Trường hợp làm lần đầu nhưng không phá kỷ lục
-          summaryMessage = `Hoàn thành! Bạn đúng ${soCauDung}/${total} câu. Điểm cao nhất của bạn vẫn là ${prevMaxXP} XP.`;
+          summaryMessage = `Hoàn thành! Bạn đúng ${soCauDung}/${total} câu. Điểm cao nhất của bạn vẫn là ${prevMaxXP} XP.🦾🫡🥰`;
         }
       }
 
       return NextResponse.json({
         correct: dapAn.dung,
-        message: dapAn.dung ? 'Chính xác!' : 'Sai mất rồi.',
+        message: dapAn.dung ? 'Chính xác!🥳🥳🥳' : 'Sai mất rồi.🥺🥺🥺',
         summaryMessage: summaryMessage,
         hoan_thanh: true,
         diem_moi: isNewMax ? finalXP - prevMaxXP : 0,
@@ -342,9 +331,9 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         correct: true,
-        message: `Chính xác! Hãy cố gắng ở câu tiếp theo.`,
+        message: `Chính xác! Tiếp tục phát huy câu sau nha.🥳🥳🥳`,
         lan_lam: lan_lam_hien_tai,
-        so_tim_con_lai: progress.so_tim_con_lai,
+        so_tim_con_lai: progress.so_tim_con_lai, // Luôn trả về số tim hiện tại
       });
     }
 
@@ -361,7 +350,7 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({ // Báo cho client reset
         correct: false,
-        message: `Bạn đã hết tim. Hãy bắt đầu lại thử thách với 5 tim.`,
+        message: `Bạn đã hết tim. Hãy bắt đầu lại thử thách với 5 tim.💔🫂😉`,
         lan_lam_moi: lanLamMoi, // Giữ lại để client biết chuyển lượt
         so_tim_con_lai: 0,
         trang_thai: 'that_bai',
@@ -377,9 +366,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       correct: false,
-      message: 'Sai mất rồi. Bạn bị -1 tim.',
+      message: 'Sai mất rồi! Bạn bị -1 tim.🥺🥺🥺',
       so_tim_con_lai: newHeart,
-      lan_lam: lan_lam_hien_tai,
     })
   } catch (error) {
     console.error('Lỗi khi xử lý câu trả lời:', error);

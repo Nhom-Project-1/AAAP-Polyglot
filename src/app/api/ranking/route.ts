@@ -17,15 +17,17 @@ export async function POST() {
       for (const row of tongXPTheoNguoiDung) {
       const { ma_nguoi_dung, tong_diem_xp } = row;
 
+      if(!ma_nguoi_dung) continue;
+
       const existing = await db.query.bang_xep_hang.findFirst({
-        where: eq(bang_xep_hang.ma_nguoi_dung, ma_nguoi_dung as number),
+        where: eq(bang_xep_hang.ma_nguoi_dung, ma_nguoi_dung),
       });
 
       if (existing) {
         await db
           .update(bang_xep_hang)
           .set({ tong_diem_xp })
-          .where(eq(bang_xep_hang.ma_nguoi_dung, ma_nguoi_dung as number));
+          .where(eq(bang_xep_hang.ma_nguoi_dung, ma_nguoi_dung));
       } else {
         await db.insert(bang_xep_hang).values({
           ma_nguoi_dung,

@@ -7,7 +7,7 @@ import UserProgress from "@/components/user-progress"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { useAuthStore } from "@/lib/store"
-import Loading from "@/components/ui/loading"
+import { Skeleton } from "@/components/ui/skeleton"
 
 type MucTieu = {
   ma_muc_tieu: number;
@@ -19,33 +19,32 @@ type MucTieu = {
 
 export default function GoalPage() {
   const router = useRouter()
-  const { user } = useAuthStore()
   const [mucTieuList, setMucTieuList] = useState<MucTieu[]>([])
-  // const [tongXP, setTongXP] = useState(0) // Không cần state này nữa
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const { user, isHydrated } = useAuthStore()
 
   useEffect(() => {
-    if (!user?.id) {
-      setLoading(false)
-      return
-    }
+    if (!isHydrated) return
 
     const fetchData = async () => {
+      if (!user?.id) {
+        setMucTieuList([]) 
+        setLoading(false)
+        return
+      }
+
       try {
         setLoading(true)
-        const goalsRes = await fetch("/api/goal");
-
-        if (!goalsRes.ok) throw new Error("Không thể tải danh sách mục tiêu.")
-
-        const goalsDataFromApi: any[] = await goalsRes.json();
-
-        // API đã trả về dữ liệu phẳng, chỉ cần tạo thêm tên mục tiêu
-        const goalsData = goalsDataFromApi.map(goal => ({
+        const res = await fetch("/api/goal")
+        if (!res.ok) throw new Error("Không thể tải danh sách mục tiêu")
+        const data: MucTieu[] = await res.json()
+        const goalsWithName: MucTieu[] = data.map(goal => ({
           ...goal,
           ten_muc_tieu: `Kiếm được ${goal.diem_can_dat} XP`,
         }))
-        setMucTieuList(goalsData)
+
+        setMucTieuList(goalsWithName)
       } catch (err: any) {
         setError(err.message)
       } finally {
@@ -54,7 +53,7 @@ export default function GoalPage() {
     }
 
     fetchData()
-  }, [user?.id])
+  }, [isHydrated, user?.id])
 
   return (
     <Layout>
@@ -64,15 +63,22 @@ export default function GoalPage() {
             <h1 className="text-3xl font-semibold text-pink-500">Mục tiêu</h1>
 
             {loading ? (
-              <p className="text-lg text-gray-500">Đang tải...</p>
+              <div className="space-y-8 mt-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="flex flex-col gap-3">
+                    <Skeleton className="h-6 w-48" />
+                    <div className="relative w-full max-w-[500px]">
+                      <Skeleton className="h-4 w-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : error ? (
               <p className="text-red-500">{error}</p>
             ) : (
               mucTieuList.map(goal => {
-                // Sử dụng trực tiếp trạng thái 'hoan_thanh' từ API
                 const completed = goal.hoan_thanh;
-                const progress = goal.phan_tram_hoan_thanh;
-
+                const progress = goal?.phan_tram_hoan_thanh;
 
                 return (
                   <div
@@ -89,6 +95,7 @@ export default function GoalPage() {
                       <div className="w-full bg-gray-200 h-4 rounded-full overflow-hidden">
                         <motion.div
                           className="h-full bg-pink-500"
+                          initial={{ width: 0 }}            
                           animate={{ width: `${progress * 100}%` }}
                           transition={{ duration: 0.4, ease: "easeInOut" }}
                         />

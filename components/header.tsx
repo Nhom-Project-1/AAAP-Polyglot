@@ -13,10 +13,10 @@ const menuItems = [
 ]
 
 type HeaderProps = {
-  onLogout: () => void
+  onLogoutAction: () => void
 }
 
-export const Header = ({ onLogout }: HeaderProps) => {
+export const Header = ({ onLogoutAction }: HeaderProps) => {
   const router = useRouter()
   const pathname = usePathname()
   const [showLogoutModal, setShowLogoutModal] = useState(false)
@@ -103,7 +103,7 @@ export const Header = ({ onLogout }: HeaderProps) => {
                 className="px-6 py-2 text-lg font-semibold cursor-pointer"
                 onClick={() => {
                   setShowLogoutModal(false)
-                  onLogout()
+                  onLogoutAction()
                 }}
               >
                 Đăng xuất

@@ -5,8 +5,8 @@ import Layout from "@/components/layout"
 import { motion } from "framer-motion"
 import { Crown } from "lucide-react"
 import { useAuthStore } from "@/lib/store"
-import Loading from "@/components/ui/loading"
 import Crying from "@/components/ui/crying"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface RankingUser {
   ten_dang_nhap: string;
@@ -20,22 +20,24 @@ interface RankingData {
 }
 
 export default function RankingPage() {
-  const { user } = useAuthStore()
+  const { user, isHydrated } = useAuthStore()
   const [rankingData, setRankingData] = useState<RankingData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!user?.id) {
-      return;
-    }
+    if (!isHydrated) return;
 
     const fetchRanking = async () => {
       try {
         setLoading(true)
         const res = await fetch("/api/ranking/top_ranking", {
-          method: "GET",
-        })
+                  method: "GET",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  credentials: "include",
+                })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || "Không thể tải bảng xếp hạng.")
         setRankingData(data)
@@ -47,12 +49,34 @@ export default function RankingPage() {
     }
 
     fetchRanking()
-  }, [user?.id])
+  }, [isHydrated])
 
   if (loading) {
     return (
       <Layout>
-        <div className="h-full w-full flex items-center justify-center"><p className="text-lg text-gray-500">Đang tải...</p></div>
+        <div className="flex justify-center min-h-screen px-4 py-12">
+          <div className="w-full max-w-2xl bg-white p-8 rounded-2xl shadow-md">
+            <Skeleton className="h-8 w-1/2 mx-auto mb-8" />
+
+            {/* Skeleton for Table Header */}
+            <div className="flex justify-between p-3 bg-pink-100 rounded-lg text-left text-sm uppercase text-gray-700">
+              <Skeleton className="h-5 w-16" />
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-5 w-20" />
+            </div>
+
+            {/* Skeleton for Table Rows */}
+            <div className="space-y-2 mt-4">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="flex items-center justify-between p-3 border-b">
+                  <Skeleton className="h-6 w-10" />
+                  <Skeleton className="h-6 w-40" />
+                  <Skeleton className="h-6 w-24" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </Layout>
     );
   }

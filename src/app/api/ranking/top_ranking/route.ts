@@ -46,8 +46,14 @@ export async function GET(req: NextRequest) {
       .limit(10);
 
     let myRank: number | null = null;
-    let myScore: number | null = null;
+    let myScore: number = 0; // Mặc định điểm là 0
     
+    // Đảm bảo người dùng hiện tại có trong bảng xếp hạng, nếu chưa có thì thêm vào với 0 điểm.
+    // Thao tác này an toàn và hiệu quả, không làm gì nếu người dùng đã tồn tại.
+    await db.insert(bang_xep_hang)
+      .values({ ma_nguoi_dung: ma_nguoi_dung as number, tong_diem_xp: 0 })
+      .onConflictDoNothing({ target: bang_xep_hang.ma_nguoi_dung });
+
     // Tìm thông tin của người dùng hiện tại trong bảng xếp hạng
     const myInfoResult = await db.select({ tong_diem_xp: bang_xep_hang.tong_diem_xp }).from(bang_xep_hang).where(eq(bang_xep_hang.ma_nguoi_dung, ma_nguoi_dung as number));
     const myInfo = myInfoResult[0];
@@ -58,16 +64,10 @@ export async function GET(req: NextRequest) {
       const higherRankCountResult = await db.select({ count: sql<number>`count(*)` }).from(bang_xep_hang).where(sql`${bang_xep_hang.tong_diem_xp} > ${myScore}`);
       myRank = Number(higherRankCountResult[0].count) + 1;
     } else {
-      // Xử lý trường hợp người dùng chưa có trong bảng xếp hạng (ví dụ: người mới)
-      myScore = 0;
+      // Trường hợp này rất khó xảy ra sau khi đã thêm logic insert ở trên, nhưng vẫn để dự phòng.
+      // Đếm tất cả người dùng để xác định hạng cuối.
       const totalUsersCountResult = await db.select({ count: sql<number>`count(*)` }).from(bang_xep_hang);
-      myRank = Number(totalUsersCountResult[0].count) + 1;
-    }
-
-    // Xử lý trường hợp không tìm thấy người dùng (dù rất hiếm khi xảy ra)
-    if (myRank === 0) {
-      myRank = null;
-      myScore = null;
+      myRank = Number(totalUsersCountResult[0].count);
     }
 
     return NextResponse.json({

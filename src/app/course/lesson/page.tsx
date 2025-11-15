@@ -7,6 +7,7 @@ import { ArrowLeft, Volume2 } from "lucide-react"
 import Layout from "@/components/layout"
 import UserProgress from "@/components/user-progress"
 import Crying from "@/components/ui/crying"
+import { Skeleton } from "@/components/ui/skeleton"
 import Loading from "@/components/ui/loading"
 
 type Unit = {
@@ -102,13 +103,37 @@ function LessonPageContent() {
     }
   };
 
-  if (loading)
-    return <p className="text-center mt-10">Đang tải dữ liệu...</p>
+  if (loading) {
+    return (
+      <main className="relative p-6 min-h-screen">
+        <div className="absolute top-4 right-6">
+          <UserProgress />
+        </div>
+        <div className="flex items-center gap-4 mb-4">
+          <Skeleton className="h-6 w-6" />
+          <Skeleton className="h-9 w-1/2" />
+        </div>
+        <div className="text-center mt-8">
+          <Skeleton className="h-9 w-1/3 mx-auto" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="border rounded-xl p-4 shadow-md flex items-center justify-between">
+              <div className="space-y-2 flex-1">
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-5 w-1/2" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </main>
+    );
+  }
 
   if (error || !lesson || !unit)
     return (
       <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
-        <Crying size={150} />
         <p className="text-gray-500 text-lg font-medium text-center">
           {error || "Không tìm thấy bài học này"}
         </p>
@@ -171,10 +196,11 @@ function LessonPageContent() {
             </div>
           ))
         ) : (
-          <p className="col-span-full text-gray-500 text-center italic">
-            Hiện tại chưa có từ vựng cho bài này
-          </p>
-        )}
+          <div className="col-span-full flex flex-col items-center mt-12 space-y-4 text-center text-gray-500 italic">
+            <Crying size={150} />
+            <p>Hiện tại chưa có từ vựng cho bài này</p>
+          </div>
+                )}
       </div>
 
       <div className="flex justify-center mt-12 mb-6">

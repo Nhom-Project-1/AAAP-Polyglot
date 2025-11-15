@@ -43,8 +43,8 @@ export default function Quiz({ challenge, onSelect, showResult, selected, isChec
           let colorClass = "bg-gray-100 border-gray-300 text-gray-800"
           let hoverClass = "hover:bg-pink-200" // Hiệu ứng hover mặc định
 
-          if (showResult || isChecking) {
-            hoverClass = "" // Xóa hiệu ứng hover khi đang kiểm tra hoặc đã có kết quả
+          if (showResult) {
+            hoverClass = "" // Xóa hiệu ứng hover khi đã có kết quả
             if (isSelected && isCorrect) colorClass = "bg-green-400 text-white border-green-500"
             else if (isSelected && !isCorrect) colorClass = "bg-red-400 text-white border-red-500"
             else if (!isSelected && isCorrect) colorClass = "bg-green-300 text-white border-green-400"
