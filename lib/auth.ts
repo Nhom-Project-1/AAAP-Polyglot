@@ -1,17 +1,18 @@
-import { headers } from "next/headers";
+import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
 export async function isAdmin() {
-  const h = await headers(); 
-  const auth = h.get("authorization");
-  const token = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
+  // Đọc token từ cookie thay vì Authorization header
+  const cookieStore = await cookies();
+  const token = cookieStore.get("token")?.value;
 
   if (!token) return false;
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
+    // Kiểm tra xem người dùng có vai trò 'admin' trong token hay không
     return decoded.role === "admin";
   } catch {
     return false;

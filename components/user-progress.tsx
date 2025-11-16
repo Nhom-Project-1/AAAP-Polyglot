@@ -77,6 +77,7 @@ type UserProgressProps = {
   return (
     <div className="flex items-center gap-10 p-3 rounded-xl">
       {/* cờ ngôn ngữ */}
+      {/* cờ ngôn ngữ */}
       <div
         className="flex items-center gap-2 cursor-pointer hover:scale-105 transition-transform"
         onClick={() => router.push("/course/choose")}
@@ -92,6 +93,7 @@ type UserProgressProps = {
         </div>
       </div>
 
+      {/* tổng XP người dùng */}
       {/* tổng XP người dùng */}
       <div className="flex items-center gap-1">
         <img src="/star.png" alt="Score" className="w-6 h-7 object-contain" />
