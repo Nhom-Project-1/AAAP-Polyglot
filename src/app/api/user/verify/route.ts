@@ -68,23 +68,13 @@ export async function POST(req: NextRequest) {
         email,
         mat_khau_hash: hashed,
         ho_ten: fullName,
+        // XÓA DÒNG role: "user"
       })
       .returning();
 
-
-    const authToken = jwt.sign(
-      {
-        userId: newUser.ma_nguoi_dung,
-        username,
-        email,
-        role: "user",
-      },
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    const response = NextResponse.json({
-      message: "Admin đã xác thực và thêm người dùng thành công!",
+    // TRẢ VỀ JSON, KHÔNG SET COOKIE
+    return NextResponse.json({
+      message: "Tạo người dùng thành công!",
       user: {
         id: newUser.ma_nguoi_dung,
         username,
@@ -92,24 +82,8 @@ export async function POST(req: NextRequest) {
         fullName,
       },
     });
-
-    response.cookies.set("token", authToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60, 
-    });
-
-    return response;
   } catch (err: unknown) {
-    console.error("❌ Lỗi xác thực admin:", err);
-    if ((err as Error).name === "TokenExpiredError") {
-      return NextResponse.json(
-        { error: "Mã xác thực đã hết hạn. Vui lòng tạo lại." },
-        { status: 400 }
-      );
-    }
+    console.error("Lỗi xác thực admin:", err);
     return NextResponse.json(
       { error: "Có lỗi xảy ra khi admin xác thực người dùng." },
       { status: 500 }

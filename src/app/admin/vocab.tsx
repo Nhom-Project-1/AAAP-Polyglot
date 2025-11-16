@@ -1,61 +1,132 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Pencil, Trash, Plus, Search } from "lucide-react"
 import toast from "react-hot-toast"
 
 interface Vocab {
-ma_tu: string
-ma_bai_hoc: string
-tu:string
-nghia:string
-lien_ket_am_thanh:string
-phien_am:string
-vi_du:string
+  ma_tu: string
+  ma_bai_hoc: string
+  tu: string
+  nghia: string
+  lien_ket_am_thanh: string
+  phien_am: string
+  vi_du: string
 }
 
-const mockData: Vocab[] = Array.from({ length: 100 }).map((_, i) => ({
-  ma_tu: `T${i + 1}`,
-  ma_bai_hoc: `L${i + 1}`,
-  tu: `word ${i + 1}`,
-  nghia: `nghĩa của word ${i + 1}`,
-  lien_ket_am_thanh: `/audio/word${i + 1}.mp3`,
-  phien_am: `/wɜːd${i + 1}/`,
-  vi_du: `Ví dụ cho từ ${i + 1}.`
-}))
-
-
 export default function AdminVocab() {
+  const [data, setData] = useState<Vocab[]>([])
+  const [loading, setLoading] = useState(true) // Giữ nguyên là true
   const [currentPage, setCurrentPage] = useState(1)
   const [modalType, setModalType] = useState<"add" | "edit" | "delete" | null>(null)
   const [editingWord, setEditingWord] = useState<Vocab | null>(null)
   const [wordToDelete, setWordToDelete] = useState<Vocab | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
-  const [data, setData] = useState<Vocab[]>(mockData)
   const [errors, setErrors] = useState({
     ma_bai_hoc: "",
     tu: "",
     nghia: "",
     lien_ket_am_thanh: "",
-    phien_am: ""
+    phien_am: "",
+    ma_tu: ""
   })
   const [isDirty, setIsDirty] = useState(false)
 
+  const [modalInputs, setModalInputs] = useState<Vocab>({
+    ma_tu: "",
+    ma_bai_hoc: "",
+    tu: "",
+    nghia: "",
+    lien_ket_am_thanh: "",
+    phien_am: "",
+    vi_du: ""
+  })
+
   const pageSize = 10
 
-  const highlightText = (text: string) => {
-    if (!searchTerm) return text
-    const regex = new RegExp(`(${searchTerm})`, "gi")
-    return text.split(regex).map((part, i) =>
-      regex.test(part) ? <span key={i} className="bg-pink-200">{part}</span> : part
-    )
+  // --- FETCH DATA ---
+  const fetchVocabs = async (q = "") => {
+    setLoading(true)
+      try {
+      const res = await fetch(`/api/admin/vocabs${q ? `?q=${q}` : ""}`, {
+        method: "GET",
+        credentials: "include"   
+      })
+      if (!res.ok) throw new Error((await res.json()).message || "Lỗi khi lấy dữ liệu từ server")
+      const json = await res.json()
+      setData(json.data)
+    } catch (err: any) {
+      toast.error(err.message || "Không thể lấy dữ liệu từ server")
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const filteredData = data.filter(word =>
-    word.tu.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    word.nghia.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      fetchVocabs(searchTerm)
+    }, 300) 
+
+    return () => clearTimeout(delay)
+  }, [searchTerm])
+
+  // --- CRUD API ---
+  // --- Thêm từ ---
+const addVocab = async (word: Vocab) => {
+  try {
+    const res = await fetch("/api/admin/vocabs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(word),
+    })
+    if (!res.ok) throw new Error((await res.json()).message || "Thêm thất bại")
+
+    await fetchVocabs(searchTerm)
+    toast.success("Thêm từ vựng thành công!")
+  } catch (err: any) {
+    toast.error(err.message || "Thêm thất bại")
+  }
+}
+
+
+// --- Sửa từ ---
+const editVocab = async (word: Vocab) => {
+  try {
+    const res = await fetch("/api/admin/vocabs", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(word),
+    })
+    if (!res.ok) throw new Error((await res.json()).message || "Sửa thất bại")
+    // Tải lại dữ liệu để đảm bảo tính nhất quán
+    await fetchVocabs(searchTerm)
+    toast.success("Sửa từ vựng thành công!")
+  } catch (err: any) {
+    toast.error(err.message || "Sửa thất bại")
+  }
+}
+
+// --- Xóa từ ---
+const deleteVocab = async (ma_tu: string) => {
+  try {
+    const res = await fetch(`/api/admin/vocabs?id=${ma_tu}`, {
+      method: "DELETE",
+      credentials: "include"
+    })
+    if (!res.ok) throw new Error((await res.json()).message || "Xóa thất bại")
+    await fetchVocabs(searchTerm)
+    toast.success("Xóa thành công!")
+  } catch (err: any) {
+    toast.error(err.message || "Xóa thất bại")
+  }
+}
+
+  // --- PAGINATION ---
+  const filteredData = data // Dữ liệu đã được lọc từ API
+
 
   const totalPages = Math.ceil(filteredData.length / pageSize)
   const currentData = filteredData.slice(
@@ -63,16 +134,20 @@ export default function AdminVocab() {
     currentPage * pageSize
   )
 
+  // --- UTILS ---
+  const highlightText = (text: string | null | undefined) => {
+    if (!text) return ""   
+    if (!searchTerm) return text
+    const regex = new RegExp(`(${searchTerm})`, "gi")
+    return text.split(regex).map((part, i) =>
+      regex.test(part) ? <span key={i} className="bg-pink-200">{part}</span> : part
+    )
+  }
+
   const handleEdit = (word: Vocab) => {
     setEditingWord(word)
     setModalType("edit")
-    setErrors({
-      ma_bai_hoc: "",
-      tu: "",
-      nghia: "",
-      lien_ket_am_thanh: "",
-      phien_am: ""
-    })
+    setErrors({ ma_bai_hoc: "", tu: "", nghia: "", lien_ket_am_thanh: "", phien_am: "", ma_tu: "" })
     setIsDirty(false)
   }
 
@@ -82,53 +157,44 @@ export default function AdminVocab() {
     setModalType("delete")
   }
 
-  const handleSave = (word: Vocab, isEdit: boolean) => {
-    const newErrors = {ma_bai_hoc:"", tu:"", nghia:"", lien_ket_am_thanh:"", phien_am:""}
-    if (!word.ma_bai_hoc.trim()) {
-      newErrors.ma_bai_hoc = "Mã bài học không được để trống"
-    }
-    if (!word.tu.trim()) {
-      newErrors.tu = "Từ vựng không được để trống"
-    }
-    if (!word.nghia.trim()) {
-      newErrors.nghia = "Nghĩa không được để trống"
-    }
-    if (!word.lien_ket_am_thanh.trim()) {
-      newErrors.lien_ket_am_thanh = "Liên kết âm thanh không được để trống"
-    }
-    if (!word.phien_am.trim()) {
-      newErrors.phien_am = "Phiên âm không được để trống"
-    }
-    if (newErrors.ma_bai_hoc || newErrors.tu || newErrors.nghia || newErrors.lien_ket_am_thanh || newErrors.phien_am) {
-      setErrors(newErrors)
-      return
-    }
-    if (isEdit) {
-      toast.dismiss()
-      setData(prev => prev.map(w => w.ma_tu === editingWord?.ma_tu ? { ...w, ...word } : w))
-      toast.success("Sửa từ vựng thành công!")
-    } else {
-      toast.dismiss()
-      const maxId = data.reduce((max, item) => {
-        const num = parseInt(item.ma_tu.replace('T','')) || 0
-        return num > max ? num : max
-      }, 0)
-      word.ma_tu = `T${maxId + 1}`
-      setData(prev => [...prev, word])
-      toast.success("Thêm từ vựng thành công!")
-    }
-
-    setModalType(null)
-    setEditingWord(null)
-    setErrors({
-                ma_bai_hoc: "",
-                tu: "",
-                nghia: "",
-                lien_ket_am_thanh: "",
-                phien_am: ""
-              })
-    setIsDirty(false)
+const handleSave = (word: Vocab, isEdit: boolean) => {
+  const newErrors = {
+    ma_bai_hoc: "",
+    tu: "",
+    nghia: "",
+    lien_ket_am_thanh: "",
+    phien_am: "",
+    ma_tu: ""
   }
+
+  // --- check required ---
+  if (!String(word.ma_bai_hoc || "").trim()) newErrors.ma_bai_hoc = "Mã bài học không được để trống"
+  if (!String(word.tu || "").trim()) newErrors.tu = "Từ vựng không được để trống"
+  if (!String(word.nghia || "").trim()) newErrors.nghia = "Nghĩa không được để trống"
+  if (!String(word.lien_ket_am_thanh || "").trim()) newErrors.lien_ket_am_thanh = "Liên kết âm thanh không được để trống"
+  if (!String(word.phien_am || "").trim()) newErrors.phien_am = "Phiên âm không được để trống"
+  if (!/^\d+$/.test(word.ma_bai_hoc)) newErrors.ma_bai_hoc = "Mã bài học chỉ được nhập số"
+  if (word.ma_bai_hoc && !/^\d+$/.test(word.ma_bai_hoc)) newErrors.ma_bai_hoc = "Mã bài học chỉ được nhập số"
+  if (word.ma_tu && !/^\d+$/.test(word.ma_tu)) newErrors.ma_tu = "Mã từ vựng chỉ được nhập số"
+  if (Object.values(newErrors).some(e => e)) {
+    setErrors(newErrors)
+    return
+  }
+
+  if (isEdit) editVocab(word)
+  else addVocab(word)
+
+  setModalType(null)
+  setEditingWord(null)
+  setErrors({ ma_bai_hoc: "", tu: "", nghia: "", lien_ket_am_thanh: "", phien_am: "", ma_tu: "" })
+  setIsDirty(false)
+}
+
+
+  useEffect(() => {
+    if (editingWord) setModalInputs(editingWord)
+    else setModalInputs({ ma_tu:"", ma_bai_hoc:"", tu:"", nghia:"", lien_ket_am_thanh:"", phien_am:"", vi_du:"" })
+  }, [editingWord, modalType])
 
   return (
     <div>
@@ -150,13 +216,7 @@ export default function AdminVocab() {
             onClick={() => {
               setEditingWord(null)
               setModalType("add")
-              setErrors({
-                ma_bai_hoc: "",
-                tu: "",
-                nghia: "",
-                lien_ket_am_thanh: "",
-                phien_am: ""
-              })
+              setErrors({ ma_bai_hoc: "", tu: "", nghia: "", lien_ket_am_thanh: "", phien_am: "", ma_tu: "" })
               setIsDirty(false)
             }}
             className="flex items-center gap-2 bg-pink-500 text-white px-4 py-2 rounded-md hover:bg-pink-600 cursor-pointer"
@@ -182,7 +242,15 @@ export default function AdminVocab() {
             </tr>
           </thead>
           <tbody>
-            {currentData.map(word => (
+            {loading ? (
+              <tr>
+                <td colSpan={8} className="text-center py-4 text-slate-500">Đang tải...</td>
+              </tr>
+            ) : currentData.length === 0 ? (
+              <tr>
+                <td colSpan={8} className="text-center py-4 text-slate-500">Không có kết quả</td>
+              </tr>
+            ) : currentData.map(word => (
               <tr key={word.ma_tu} className="hover:bg-pink-50">
                 <td className="px-4 py-2">{word.ma_tu}</td>
                 <td className="px-4 py-2">{word.ma_bai_hoc}</td>
@@ -201,11 +269,6 @@ export default function AdminVocab() {
                 </td>
               </tr>
             ))}
-            {currentData.length === 0 && (
-              <tr>
-                <td colSpan={6} className="text-center py-4 text-slate-500">Không có kết quả</td>
-              </tr>
-            )}
           </tbody>
         </table>
       </div>
@@ -240,108 +303,56 @@ export default function AdminVocab() {
           </button>
         ))}
 
-        <button 
-          onClick={() => setCurrentPage(p => Math.min(p+1,totalPages))} 
-          disabled={currentPage===totalPages} 
-          className={`px-1 transition-colors ${currentPage===totalPages?'text-pink-500 cursor-default':'text-pink-500 hover:text-pink-700 cursor-pointer'}`}
-        >&gt;</button>
-
-        <button 
-          onClick={() => setCurrentPage(totalPages)} 
-          disabled={currentPage===totalPages} 
-          className={`px-1 transition-colors ${currentPage===totalPages?'text-pink-500 cursor-default':'text-pink-500 hover:text-pink-700 cursor-pointer'}`}
-        >&gt;&gt;</button>
+        <button onClick={() => setCurrentPage(p => Math.min(p+1,totalPages))} disabled={currentPage===totalPages || totalPages === 0} className={`px-1 transition-colors ${currentPage===totalPages || totalPages === 0 ?'text-pink-500 cursor-default':'text-pink-500 hover:text-pink-700 cursor-pointer'}`}>{">"}</button>
+        <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage===totalPages || totalPages === 0} className={`px-1 transition-colors ${currentPage===totalPages || totalPages === 0 ?'text-pink-500 cursor-default':'text-pink-500 hover:text-pink-700 cursor-pointer'}`}>{">>"}</button>
       </div>
 
-      {/* Modal Thêm / Sửa / Xóa */}
+      {/* Modal */}
       <AnimatePresence>
         {modalType && (
           <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
             <motion.div initial={{scale:0.9}} animate={{scale:1}} exit={{scale:0.9}} className="bg-white rounded-md p-6 w-96 shadow-lg">
-              {/* Thêm / Sửa */}
-              {(modalType === "add" || modalType === "edit") && (
+              {(modalType==="add" || modalType==="edit") && (
                 <>
-                  <h3 className="text-lg font-semibold mb-4">{modalType === "edit" ? "Sửa từ vựng" : "Thêm từ vựng"}</h3>
+                  <h3 className="text-lg font-semibold mb-4">{modalType==="edit" ? "Sửa từ vựng" : "Thêm từ vựng"}</h3>
                   <div className="flex flex-col gap-2">
-                    <div className="flex flex-col">
-                      <label className="mb-1 text-sm font-medium text-gray-700">Mã bài học</label>
-                      <input id="mabaihoc" type="text" defaultValue={editingWord?.ma_bai_hoc || ""} className="border px-3 py-2 rounded-md w-full" onChange={() => setIsDirty(true)} />
-                      {errors.ma_bai_hoc && <span className="text-red-500 text-sm mt-1">{errors.ma_bai_hoc}</span>}
-                    </div>
-                    <div className="flex flex-col">
-                      <label className="mb-1 text-sm font-medium text-gray-700">Từ vựng</label>
-                      <input id="name" type="text" defaultValue={editingWord?.tu || ""} className="border px-3 py-2 rounded-md w-full" onChange={() => setIsDirty(true)} />
-                      {errors.tu && <span className="text-red-500 text-sm mt-1">{errors.tu}</span>}
-                    </div>
-                    <div className="flex flex-col">
-                      <label className="mb-1 text-sm font-medium text-gray-700">Nghĩa</label>
-                      <input id="mean" type="text" defaultValue={editingWord?.nghia || ""} className="border px-3 py-2 rounded-md w-full" onChange={() => setIsDirty(true)} />
-                      {errors.nghia && <span className="text-red-500 text-sm mt-1">{errors.nghia}</span>}
-                    </div>
-                    <div className="flex flex-col">
-                      <label className="mb-1 text-sm font-medium text-gray-700">Liên kết âm thanh</label>
-                      <input id="sound" type="text" defaultValue={editingWord?.lien_ket_am_thanh || ""} className="border px-3 py-2 rounded-md w-full" onChange={() => setIsDirty(true)} />
-                      {errors.lien_ket_am_thanh && <span className="text-red-500 text-sm mt-1">{errors.lien_ket_am_thanh}</span>}
-                    </div>
-                    <div className="flex flex-col">
-                      <label className="mb-1 text-sm font-medium text-gray-700">Phiên âm</label>
-                      <input id="trans" type="text" defaultValue={editingWord?.tu || ""} className="border px-3 py-2 rounded-md w-full" onChange={() => setIsDirty(true)} />
-                      {errors.phien_am && <span className="text-red-500 text-sm mt-1">{errors.phien_am}</span>}
-                    </div>
-                    <div className="flex flex-col">
-                      <label className="mb-1 text-sm font-medium text-gray-700">Ví dụ</label>
-                      <input id="example" type="text" defaultValue={editingWord?.vi_du || ""} className="border px-3 py-2 rounded-md w-full" onChange={() => setIsDirty(true)} />
-                    </div>
+                    {["ma_bai_hoc","tu","nghia","lien_ket_am_thanh","phien_am","vi_du"].map(field => (
+                      <div key={field} className="flex flex-col">
+                        <label className="mb-1 text-sm font-medium text-gray-700">{field.replace(/_/g," ")}</label>
+                        <input
+                          type="text"
+                          value={modalInputs[field as keyof Vocab] || ""}
+                          onChange={e => {
+                            let val = e.target.value
+                            if (field === "ma_bai_hoc" || field === "ma_tu") {
+                              val = val.replace(/\D/g, "") 
+                            }
+                            setModalInputs({...modalInputs, [field]: val})
+                            setIsDirty(true)
+                          }}
+                          className="border px-3 py-2 rounded-md w-full"
+                        />
+                        {errors[field as keyof typeof errors] && <span className="text-red-500 text-sm mt-1">{errors[field as keyof typeof errors]}</span>}
+                      </div>
+                    ))}
                   </div>
                   <div className="flex justify-end gap-2 mt-4">
                     <button onClick={() => setModalType(null)} className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 cursor-pointer">Hủy</button>
                     <button
-                      onClick={() => {
-                        if (!isDirty) return
-                        const maBaiHocInput = (document.getElementById('mabaihoc') as HTMLInputElement).value
-                        const nameInput = (document.getElementById('name') as HTMLInputElement).value
-                        const meanInput = (document.getElementById('mean') as HTMLInputElement).value
-                        const soundInput = (document.getElementById('sound') as HTMLInputElement).value
-                        const transInput = (document.getElementById('trans') as HTMLInputElement).value
-                        const exInput = (document.getElementById('example') as HTMLInputElement).value
-                        handleSave(
-                          {
-                            ma_tu: editingWord?.ma_tu || '',
-                            ma_bai_hoc: maBaiHocInput,
-                            tu: nameInput,
-                            nghia: meanInput,
-                            lien_ket_am_thanh: soundInput,
-                            phien_am: transInput,
-                            vi_du: exInput
-                          },
-                          modalType === "edit"
-                        )
-                      }}
-                      className={`px-4 py-2 rounded-md text-white transition-colors ${isDirty?'bg-pink-500 hover:bg-pink-600 cursor-pointer':'bg-gray-300 cursor-default'}`}
-                    >
-                      Lưu
-                    </button>
+                      onClick={() => handleSave(modalInputs, modalType==="edit")}
+                      className={`px-4 py-2 rounded-md text-white ${isDirty?'bg-pink-500 hover:bg-pink-600':'bg-gray-300 cursor-default'}`}
+                    >Lưu</button>
                   </div>
                 </>
               )}
 
-              {/* Xóa */}
-              {modalType === "delete" && wordToDelete && (
+              {modalType==="delete" && wordToDelete && (
                 <>
                   <h3 className="text-lg font-semibold mb-4 text-red-600">Xác nhận xóa</h3>
                   <p className="mb-4">Bạn có chắc muốn xóa từ vựng <strong>{wordToDelete.tu}</strong> không?</p>
                   <div className="flex justify-end gap-2">
                     <button onClick={() => setModalType(null)} className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 cursor-pointer">Hủy</button>
-                    <button
-                      onClick={() => {
-                        setData(prev => prev.filter(w => w.ma_tu !== wordToDelete.ma_tu))
-                        setModalType(null)
-                        toast.success("Xóa thành công!")
-                      }}
-                      className="px-4 py-2 rounded-md bg-red-500 text-white hover:bg-red-600 cursor-pointer"
-                    >
-                      Xóa
-                    </button>
+                    <button onClick={() => { deleteVocab(wordToDelete.ma_tu); setModalType(null) }} className="px-4 py-2 rounded-md bg-red-500 text-white hover:bg-red-600 cursor-pointer">Xóa</button>
                   </div>
                 </>
               )}

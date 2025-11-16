@@ -102,7 +102,7 @@ export async function DELETE(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     await assertAdmin()
-    const { id, ho_ten, ten_dang_nhap, mat_khau } = await req.json()
+    const { id, ho_ten, ten_dang_nhap } = await req.json()
 
     if (!id) {
       return NextResponse.json({ error: "Thiếu mã người dùng cần cập nhật." }, { status: 400 })
@@ -128,13 +128,6 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ error: "Tên đăng nhập đã tồn tại." }, { status: 400 })
       }
       updateData.ten_dang_nhap = ten_dang_nhap
-    }
-
-    if (mat_khau) {
-      if (mat_khau.length < 8) {
-        return NextResponse.json({ error: "Mật khẩu phải ít nhất 8 ký tự." }, { status: 400 })
-      }
-      updateData.mat_khau_hash = await bcrypt.hash(mat_khau, 10)
     }
 
     if (Object.keys(updateData).length === 0) {

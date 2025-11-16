@@ -83,12 +83,13 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     await assertAdmin();
-    const { ma_thu_thach, cau_hoi, loai_thu_thach } = await req.json();
+    const { ma_thu_thach, cau_hoi, loai_thu_thach, ma_bai_hoc } = await req.json();
     if (!ma_thu_thach) return NextResponse.json({ message: "Thiếu mã thử thách cần sửa" }, { status: 400 });
 
     const updateData: Record<string, any> = {};
     if (cau_hoi) updateData.cau_hoi = cau_hoi;
     if (loai_thu_thach) updateData.loai_thu_thach = loai_thu_thach;
+    if (ma_bai_hoc !== undefined) updateData.ma_bai_hoc = Number(ma_bai_hoc);
     if (!Object.keys(updateData).length) return NextResponse.json({ message: "Không có trường để cập nhật" }, { status: 400 });
 
     await db.update(thu_thach).set(updateData).where(eq(thu_thach.ma_thu_thach, Number(ma_thu_thach)));
