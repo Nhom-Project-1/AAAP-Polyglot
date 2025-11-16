@@ -129,42 +129,42 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
     }
   }, [isOutOfHearts])
 
-  if (!isFetchingChallenges) {
-    const handleBackToCourse = async () => {
-      try {
-        setLoading(true)
-        const res = await fetch("/api/user-language", {
-          method: "GET",
-          credentials: "include",
-        })
-        const data = await res.json()
+  // if (!isFetchingChallenges) {
+  //   const handleBackToCourse = async () => {
+  //     try {
+  //       setLoading(true)
+  //       const res = await fetch("/api/user-language", {
+  //         method: "GET",
+  //         credentials: "include",
+  //       })
+  //       const data = await res.json()
 
-        if (res.ok && data.current?.id) {
-          router.push(`/course?lang=${data.current.id}`)
-        } else {
-          router.push("/login")
-        }
-      } catch (err) {
-        console.error("Lỗi khi lấy ngôn ngữ active:", err)
-        router.push("/login")
-      } finally {
-        setLoading(false)
-      }
-    }
+  //       if (res.ok && data.current?.id) {
+  //         router.push(`/course?lang=${data.current.id}`)
+  //       } else {
+  //         router.push("/login")
+  //       }
+  //     } catch (err) {
+  //       console.error("Lỗi khi lấy ngôn ngữ active:", err)
+  //       router.push("/login")
+  //     } finally {
+  //       setLoading(false)
+  //     }
+  //   }
 
-    return (
-      <div className="flex flex-col min-h-screen items-center justify-center gap-4">
-        <Crying/>
-        <p className="text-xl mt-8">Chưa có thử thách cho bài học này.</p>
-        <button
-          onClick={handleBackToCourse}
-          className="px-6 py-3 text-pink-400 rounded-lg underline hover:text-pink-600 transition cursor-pointer"
-        >
-          Chọn bài học khác
-        </button>
-      </div>
-    )
-  }
+  //   return (
+  //     <div className="flex flex-col min-h-screen items-center justify-center gap-4">
+  //       <Crying/>
+  //       <p className="text-xl mt-8">Chưa có thử thách cho bài học này.</p>
+  //       <button
+  //         onClick={handleBackToCourse}
+  //         className="px-6 py-3 text-pink-400 rounded-lg underline hover:text-pink-600 transition cursor-pointer"
+  //       >
+  //         Chọn bài học khác
+  //       </button>
+  //     </div>
+  //   )
+  // }
   if (loading||!currentChallenge) {
     return (
       <div className="flex flex-col min-h-screen">
