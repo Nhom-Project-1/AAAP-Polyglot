@@ -55,6 +55,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Kiểm tra xem bài học có tồn tại không
+    const lessonExists = await db.query.bai_hoc.findFirst({
+      where: (tbl, { eq }) => eq(tbl.ma_bai_hoc, Number(ma_bai_hoc)),
+      columns: { ma_bai_hoc: true },
+    });
+
+    if (!lessonExists) {
+      return NextResponse.json(
+        { message: `Mã bài học '${ma_bai_hoc}' không tồn tại.` },
+        { status: 404 }
+      );
+    }
+
     await db.execute(sql`
       SELECT setval(
         pg_get_serial_sequence('tu_vung', 'ma_tu'),
@@ -86,7 +99,7 @@ export async function PUT(req: NextRequest) {
   try {
     await assertAdmin();
 
-    const { ma_tu, tu, phien_am, nghia, lien_ket_am_thanh, vi_du } = await req.json();
+    const { ma_tu, ma_bai_hoc, tu, phien_am, nghia, lien_ket_am_thanh, vi_du } = await req.json();
 
     if (!ma_tu) {
       return NextResponse.json(
@@ -96,11 +109,27 @@ export async function PUT(req: NextRequest) {
     }
 
     const updateData: Record<string, any> = {};
+    if (ma_bai_hoc) updateData.ma_bai_hoc = Number(ma_bai_hoc);
     if (tu) updateData.tu = tu;
     if (phien_am) updateData.phien_am = phien_am;
     if (nghia) updateData.nghia = nghia;
     if (lien_ket_am_thanh) updateData.lien_ket_am_thanh = lien_ket_am_thanh;
     if (vi_du) updateData.vi_du = vi_du;
+
+    // Nếu có cập nhật mã bài học, kiểm tra xem nó có tồn tại không
+    if (ma_bai_hoc) {
+      const lessonExists = await db.query.bai_hoc.findFirst({
+        where: (tbl, { eq }) => eq(tbl.ma_bai_hoc, Number(ma_bai_hoc)),
+        columns: { ma_bai_hoc: true },
+      });
+
+      if (!lessonExists) {
+        return NextResponse.json(
+          { message: `Mã bài học '${ma_bai_hoc}' không tồn tại.` },
+          { status: 404 }
+        );
+      }
+    }
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(

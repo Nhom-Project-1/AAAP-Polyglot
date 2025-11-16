@@ -140,16 +140,15 @@ export default function AdminLesson() {
       if (!res.ok) throw new Error(result.message || "Lỗi khi lưu bài học")
 
       toast.success(result.message)
-
-      // fetch lại dữ liệu sau khi thêm/sửa
       fetchLessons(searchTerm)
-    } catch (error: any) {
-      toast.error(error.message)
-    } finally {
+
+      // Đóng modal và reset form khi thành công
       setModalType(null)
       seteditingLesson(null)
       setErrors({ ten_bai_hoc: "", ma_unit: "", mo_ta: "" })
       setIsDirty(false)
+    } catch (error: any) {
+      toast.error(error.message)
     }
   }
 

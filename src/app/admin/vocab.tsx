@@ -85,8 +85,10 @@ const addVocab = async (word: Vocab) => {
 
     await fetchVocabs(searchTerm)
     toast.success("Thêm từ vựng thành công!")
+    return true // Trả về true khi thành công
   } catch (err: any) {
     toast.error(err.message || "Thêm thất bại")
+    return false // Trả về false khi thất bại
   }
 }
 
@@ -104,8 +106,10 @@ const editVocab = async (word: Vocab) => {
     // Tải lại dữ liệu để đảm bảo tính nhất quán
     await fetchVocabs(searchTerm)
     toast.success("Sửa từ vựng thành công!")
+    return true // Trả về true khi thành công
   } catch (err: any) {
     toast.error(err.message || "Sửa thất bại")
+    return false // Trả về false khi thất bại
   }
 }
 
@@ -157,7 +161,7 @@ const deleteVocab = async (ma_tu: string) => {
     setModalType("delete")
   }
 
-const handleSave = (word: Vocab, isEdit: boolean) => {
+const handleSave = async (word: Vocab, isEdit: boolean) => {
   const newErrors = {
     ma_bai_hoc: "",
     tu: "",
@@ -181,13 +185,20 @@ const handleSave = (word: Vocab, isEdit: boolean) => {
     return
   }
 
-  if (isEdit) editVocab(word)
-  else addVocab(word)
+  let success = false;
+  if (isEdit) {
+    success = await editVocab(word);
+  } else {
+    success = await addVocab(word);
+  }
 
-  setModalType(null)
-  setEditingWord(null)
-  setErrors({ ma_bai_hoc: "", tu: "", nghia: "", lien_ket_am_thanh: "", phien_am: "", ma_tu: "" })
-  setIsDirty(false)
+  // Đóng modal và reset form nếu thao tác (thêm hoặc sửa) thành công
+  if (success) {
+    setModalType(null);
+    setEditingWord(null);
+    setIsDirty(false);
+    setErrors({ ma_bai_hoc: "", tu: "", nghia: "", lien_ket_am_thanh: "", phien_am: "", ma_tu: "" });
+  }
 }
 
 
@@ -339,7 +350,7 @@ const handleSave = (word: Vocab, isEdit: boolean) => {
                   <div className="flex justify-end gap-2 mt-4">
                     <button onClick={() => setModalType(null)} className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 cursor-pointer">Hủy</button>
                     <button
-                      onClick={() => handleSave(modalInputs, modalType==="edit")}
+                      onClick={() => { if (isDirty) handleSave(modalInputs, modalType==="edit") }}
                       className={`px-4 py-2 rounded-md text-white ${isDirty?'bg-pink-500 hover:bg-pink-600':'bg-gray-300 cursor-default'}`}
                     >Lưu</button>
                   </div>

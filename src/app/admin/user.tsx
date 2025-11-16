@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Pencil, Trash, Plus, Search } from "lucide-react"
+import { Pencil, Trash, Plus, Search, Eye, EyeOff } from "lucide-react"
 import toast from "react-hot-toast"
 
 interface User {
@@ -35,6 +35,7 @@ export default function AdminUser() {
   const [verificationToken, setVerificationToken] = useState("")
   const [otp, setOtp] = useState("")
   const [otpError, setOtpError] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
 
   const pageSize = 10
 
@@ -102,6 +103,7 @@ export default function AdminUser() {
     setOtp("")
     setOtpError("")
     setIsDirty(false)
+    setShowPassword(false)
     setErrors({ ho_ten: "", ten_dang_nhap: "", email: "", mat_khau: "" })
   }
 
@@ -128,6 +130,7 @@ export default function AdminUser() {
               setErrors({ ho_ten: "", ten_dang_nhap: "", email: "", mat_khau: "" })
               setIsDirty(false)
               setVerificationStep(false)
+              setShowPassword(false)
             }}
             className="flex items-center gap-2 bg-pink-500 text-white px-4 py-2 rounded-md hover:bg-pink-600 cursor-pointer"
           >
@@ -263,11 +266,22 @@ export default function AdminUser() {
                           {errors.email && <span className="text-red-500 text-sm mt-1">{errors.email}</span>}
                         </div>
 
-                        <div className="flex flex-col">
+                        <div className="flex flex-col relative">
                           <label className="mb-1 text-sm font-medium text-gray-700">Mật khẩu</label>
-                          <input id="password" type="password"
-                            className="border px-3 py-2 rounded-md w-full"
+                          <input id="password" type={showPassword ? "text" : "password"}
+                            className="border px-3 py-2 rounded-md w-full pr-10"
                             onChange={() => setIsDirty(true)} />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-[38px] text-gray-500 hover:text-gray-700"
+                          >
+                            {showPassword ? (
+                              <Eye className="w-5 h-5" />
+                            ) : (
+                              <EyeOff className="w-5 h-5" />
+                            )}
+                          </button>
                           {errors.mat_khau && <span className="text-red-500 text-sm mt-1">{errors.mat_khau}</span>}
                         </div>
                       </>

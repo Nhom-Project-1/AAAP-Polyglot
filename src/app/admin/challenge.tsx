@@ -145,58 +145,63 @@ const handleSave = async (challenge: Challenge, isEdit: boolean) => {
 
   try {
     if (isEdit) {
-  // Cập nhật thử thách
-  await fetch(`/api/admin/challenges`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      ma_thu_thach: challenge.ma_thu_thach,
-      ma_bai_hoc: Number(challenge.ma_bai_hoc),
-      cau_hoi: challenge.cau_hoi,
-      loai_thu_thach: challenge.loai_thu_thach,
-    }),
-  });
+      // Cập nhật thử thách
+      const updateRes = await fetch(`/api/admin/challenges`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ma_thu_thach: challenge.ma_thu_thach,
+          ma_bai_hoc: Number(challenge.ma_bai_hoc),
+          cau_hoi: challenge.cau_hoi,
+          loai_thu_thach: challenge.loai_thu_thach,
+        }),
+      });
 
-  // Cập nhật lựa chọn
-  await Promise.all(
-    (challenge.lua_chon || []).map((lc) => {
-      const maLuaChonStr = String(lc.ma_lua_chon);
-      if (maLuaChonStr.startsWith("new_")) {
-        return fetch(`/api/admin/challenges/${challenge.ma_thu_thach}/challengeOption`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ answers: [{ noi_dung: lc.noi_dung, dung: lc.dung }] }),
-        });
-      } else {
-        return fetch(`/api/admin/challenges/${challenge.ma_thu_thach}/challengeOption`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ answers: [lc] }),
-        });
+      if (!updateRes.ok) {
+        const err = await updateRes.json().catch(() => ({}));
+        throw new Error(err.message || "Không thể cập nhật thử thách");
       }
-    })
-  );
 
-  setData((prev) =>
-    prev.map((c) =>
-      c.ma_thu_thach === challenge.ma_thu_thach
-        ? {
-            ...c,
-            cau_hoi: challenge.cau_hoi,
-            loai_thu_thach: challenge.loai_thu_thach,
+      // Cập nhật lựa chọn
+      await Promise.all(
+        (challenge.lua_chon || []).map((lc) => {
+          const maLuaChonStr = String(lc.ma_lua_chon);
+          if (maLuaChonStr.startsWith("new_")) {
+            return fetch(`/api/admin/challenges/${challenge.ma_thu_thach}/challengeOption`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ answers: [{ noi_dung: lc.noi_dung, dung: lc.dung }] }),
+            });
+          } else {
+            return fetch(`/api/admin/challenges/${challenge.ma_thu_thach}/challengeOption`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ answers: [lc] }),
+            });
           }
-        : c
-    )
-  );
+        })
+      );
 
-  toast.success("Sửa thử thách thành công");
+      setData((prev) =>
+        prev.map((c) =>
+          c.ma_thu_thach === challenge.ma_thu_thach
+            ? {
+                ...c,
+                cau_hoi: challenge.cau_hoi,
+                loai_thu_thach: challenge.loai_thu_thach,
+              }
+            : c
+        )
+      );
 
-  if (expandedRow === challenge.ma_thu_thach) {
-    await fetchAndDisplayChoices(expandedRow);
-  } else {
-    setRefetchTrigger((prev) => prev + 1);
-  }
-} else {
+      toast.success("Sửa thử thách thành công");
+
+      if (expandedRow === challenge.ma_thu_thach) {
+        await fetchAndDisplayChoices(expandedRow);
+      } else {
+        setRefetchTrigger((prev) => prev + 1);
+      }
+    } else {
       // THÊM MỚI THỬ THÁCH (phần bị thiếu)
       const createRes = await fetch(`/api/admin/challenges`, {
         method: "POST",

@@ -58,6 +58,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Kiểm tra xem unit có tồn tại không
+    const unitExists = await db.query.unit.findFirst({
+      where: (tbl, { eq }) => eq(tbl.ma_don_vi, Number(ma_don_vi)),
+      columns: { ma_don_vi: true },
+    });
+
+    if (!unitExists) {
+      return NextResponse.json(
+        { message: `Mã unit '${ma_don_vi}' không tồn tại.` },
+        { status: 404 }
+      );
+    }
+
     await db.execute(sql`
       SELECT setval(
         pg_get_serial_sequence('bai_hoc', 'ma_bai_hoc'),
@@ -99,6 +112,20 @@ export async function PUT(req: NextRequest) {
     if (ten_bai_hoc) updateData.ten_bai_hoc = ten_bai_hoc;
     if (mo_ta) updateData.mo_ta = mo_ta;
     if (ma_don_vi) updateData.ma_don_vi = Number(ma_don_vi);
+
+    // Nếu có cập nhật mã unit, kiểm tra xem nó có tồn tại không
+    if (ma_don_vi) {
+      const unitExists = await db.query.unit.findFirst({
+        where: (tbl, { eq }) => eq(tbl.ma_don_vi, Number(ma_don_vi)),
+        columns: { ma_don_vi: true },
+      });
+      if (!unitExists) {
+        return NextResponse.json(
+          { message: `Mã unit '${ma_don_vi}' không tồn tại.` },
+          { status: 404 }
+        );
+      }
+    }
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(
