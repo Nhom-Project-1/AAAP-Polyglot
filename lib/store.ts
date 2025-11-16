@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -7,6 +8,9 @@ type User = {
   email: string;
   fullName: string;
 };
+=======
+import { create } from 'zustand';
+>>>>>>> f519035dd2c96e6e6f694baa53917eb8bdf9fd79
 
 type State = {
   isLoggedIn: boolean;

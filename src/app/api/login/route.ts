@@ -52,6 +52,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Đảm bảo người dùng luôn có bản ghi trong bảng xếp hạng khi đăng nhập
+    // Nếu đã tồn tại, lệnh onConflictDoNothing sẽ bỏ qua và không làm gì cả.
+    await db.insert(schema.bang_xep_hang).values({
+      ma_nguoi_dung: dbUser.ma_nguoi_dung,
+      tong_diem_xp: 0,
+    }).onConflictDoNothing();
+
     const token = jwt.sign(
       {
         userId: dbUser.ma_nguoi_dung,
