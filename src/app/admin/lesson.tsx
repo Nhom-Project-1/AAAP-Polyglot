@@ -119,8 +119,9 @@ export default function AdminLesson() {
 
     if (!lesson.ten_bai_hoc.trim()) newErrors.ten_bai_hoc = "Tên bài học không được để trống"
     if (!lesson.ma_unit.trim()) newErrors.ma_unit = "Mã unit không được để trống"
+    if (!lesson.mo_ta.trim()) newErrors.mo_ta = "Mô tả không được để trống"
 
-    if (newErrors.ten_bai_hoc || newErrors.ma_unit) {
+    if (newErrors.ten_bai_hoc || newErrors.ma_unit || newErrors.mo_ta) {
       setErrors(newErrors)
       return
     }

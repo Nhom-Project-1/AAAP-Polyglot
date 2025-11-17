@@ -51,9 +51,9 @@ export async function POST(req: NextRequest) {
 
     const { ma_don_vi, ten_bai_hoc, mo_ta } = await req.json();
 
-    if (!ma_don_vi || !ten_bai_hoc) {
+    if (!ma_don_vi || !ten_bai_hoc || !mo_ta) {
       return NextResponse.json(
-        { message: "Thiếu mã unit hoặc tên bài học" },
+        { message: "Thiếu mã unit, tên bài học hoặc mô tả" },
         { status: 400 }
       );
     }
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     await db.insert(bai_hoc).values({
       ma_don_vi: Number(ma_don_vi),
       ten_bai_hoc,
-      mo_ta: mo_ta || null,
+      mo_ta,
     });
 
     return NextResponse.json({ message: "Thêm bài học thành công!" });
