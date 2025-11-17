@@ -17,6 +17,12 @@ export default function AdminUnit() {
   const [modalType, setModalType] = useState<"add" | "edit" | "delete" | null>(null)
   const [editingUnit, seteditingUnit] = useState<Unit | null>(null)
   const [unitToDelete, setUnitToDelete] = useState<Unit | null>(null)
+  const [formState, setFormState] = useState<Unit>({
+    ma_unit: "",
+    ma_ngon_ngu: "",
+    ten_unit: "",
+    mo_ta: ""
+  })
   const [searchTerm, setSearchTerm] = useState("")
   const [data, setData] = useState<Unit[]>([])
   const [errors, setErrors] = useState({
@@ -29,7 +35,6 @@ export default function AdminUnit() {
 
   const pageSize = 10
 
-  // fetch dữ liệu từ api
   const fetchUnits = async (q = "") => {
     setIsLoading(true)
     try {
@@ -79,9 +84,19 @@ export default function AdminUnit() {
     currentPage * pageSize
   )
 
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormState(prev => ({
+      ...prev,
+      [name]: name === "ma_ngon_ngu" ? value.replace(/\D/g, "") : value
+    }))
+    setIsDirty(true)
+  }
+
   const handleEdit = (u: Unit) => {
     seteditingUnit(u)
     setModalType("edit")
+    setFormState(u)
     setErrors({ ma_ngon_ngu: "", ten_unit: "", mo_ta: "" })
     setIsDirty(false)
   }
@@ -92,11 +107,11 @@ export default function AdminUnit() {
     setModalType("delete")
   }
 
-  const handleSave = async (unit: Unit, isEdit: boolean) => {
+  const handleSave = async (isEdit: boolean) => {
     const newErrors = { ma_ngon_ngu: "", ten_unit: "", mo_ta: "" }
-    if (!unit.ma_ngon_ngu.trim()) newErrors.ma_ngon_ngu = "Mã ngôn ngữ không được để trống"
-    if (!unit.ten_unit.trim()) newErrors.ten_unit = "Tên chương không được để trống"
-    if (!unit.mo_ta.trim()) newErrors.mo_ta = "Mô tả không được để trống"
+    if (!formState.ma_ngon_ngu.trim()) newErrors.ma_ngon_ngu = "Mã ngôn ngữ không được để trống"
+    if (!formState.ten_unit.trim()) newErrors.ten_unit = "Tên chương không được để trống"
+    if (!formState.mo_ta.trim()) newErrors.mo_ta = "Mô tả không được để trống"
 
     if (newErrors.ma_ngon_ngu || newErrors.ten_unit || newErrors.mo_ta) {
       setErrors(newErrors)
@@ -107,15 +122,15 @@ export default function AdminUnit() {
       const method = isEdit ? "PUT" : "POST"
       const body = isEdit
         ? {
-            ma_don_vi: unit.ma_unit,
-            ma_ngon_ngu: unit.ma_ngon_ngu,
-            ten_don_vi: unit.ten_unit,
-            mo_ta: unit.mo_ta
+            ma_don_vi: formState.ma_unit,
+            ma_ngon_ngu: formState.ma_ngon_ngu,
+            ten_don_vi: formState.ten_unit,
+            mo_ta: formState.mo_ta
           }
         : {
-            ma_ngon_ngu: unit.ma_ngon_ngu,
-            ten_don_vi: unit.ten_unit,
-            mo_ta: unit.mo_ta
+            ma_ngon_ngu: formState.ma_ngon_ngu,
+            ten_don_vi: formState.ten_unit,
+            mo_ta: formState.mo_ta
           }
 
       const res = await fetch("/api/admin/units", {
@@ -176,6 +191,12 @@ export default function AdminUnit() {
             onClick={() => {
               seteditingUnit(null)
               setModalType("add")
+              setFormState({
+                ma_unit: "",
+                ma_ngon_ngu: "",
+                ten_unit: "",
+                mo_ta: ""
+              })
               setErrors({ ma_ngon_ngu: "", ten_unit: "", mo_ta: "" })
               setIsDirty(false)
             }}
@@ -257,17 +278,17 @@ export default function AdminUnit() {
                   <div className="flex flex-col gap-2">
                     <div className="flex flex-col">
                       <label className="mb-1 text-sm font-medium text-gray-700">Mã ngôn ngữ</label>
-                      <input id="lang" type="text" defaultValue={editingUnit?.ma_ngon_ngu || ""} className="border px-3 py-2 rounded-md w-full" onChange={() => setIsDirty(true)} />
+                      <input name="ma_ngon_ngu" type="text" value={formState.ma_ngon_ngu} onChange={handleFormChange} className="border px-3 py-2 rounded-md w-full" />
                       {errors.ma_ngon_ngu && <span className="text-red-500 text-sm mt-1">{errors.ma_ngon_ngu}</span>}
                     </div>
                     <div className="flex flex-col">
                       <label className="mb-1 text-sm font-medium text-gray-700">Tên chương</label>
-                      <input id="name" type="text" defaultValue={editingUnit?.ten_unit || ""} className="border px-3 py-2 rounded-md w-full" onChange={() => setIsDirty(true)} />
+                      <input name="ten_unit" type="text" value={formState.ten_unit} onChange={handleFormChange} className="border px-3 py-2 rounded-md w-full" />
                       {errors.ten_unit && <span className="text-red-500 text-sm mt-1">{errors.ten_unit}</span>}
                     </div>
                     <div className="flex flex-col">
                       <label className="mb-1 text-sm font-medium text-gray-700">Mô tả</label>
-                      <input id="desc" type="text" defaultValue={editingUnit?.mo_ta || ""} className="border px-3 py-2 rounded-md w-full" onChange={() => setIsDirty(true)} />
+                      <input name="mo_ta" type="text" value={formState.mo_ta} onChange={handleFormChange} className="border px-3 py-2 rounded-md w-full" />
                       {errors.mo_ta && <span className="text-red-500 text-sm mt-1">{errors.mo_ta}</span>}
                     </div>
                   </div>
@@ -276,18 +297,7 @@ export default function AdminUnit() {
                     <button
                       onClick={() => {
                         if (!isDirty) return
-                        const nameInput = (document.getElementById('name') as HTMLInputElement).value
-                        const langInput = (document.getElementById('lang') as HTMLInputElement).value
-                        const descInput = (document.getElementById('desc') as HTMLInputElement).value
-                        handleSave(
-                          {
-                            ma_unit: editingUnit?.ma_unit || '',
-                            ma_ngon_ngu: langInput,
-                            ten_unit: nameInput,
-                            mo_ta: descInput
-                          },
-                          modalType === "edit"
-                        )
+                        handleSave(modalType === "edit")
                       }}
                       className={`px-4 py-2 rounded-md text-white transition-colors ${isDirty?'bg-pink-500 hover:bg-pink-600 cursor-pointer':'bg-gray-300 cursor-default'}`}
                     >
