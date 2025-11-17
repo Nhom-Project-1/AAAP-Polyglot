@@ -53,6 +53,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Kiểm tra xem bài học có tồn tại không
+    const lessonExists = await db.query.bai_hoc.findFirst({
+      where: (tbl, { eq }) => eq(tbl.ma_bai_hoc, Number(ma_bai_hoc)),
+      columns: { ma_bai_hoc: true },
+    });
+
+    if (!lessonExists) {
+      return NextResponse.json(
+        { message: `Mã bài học '${ma_bai_hoc}' không tồn tại.` },
+        { status: 404 }
+      );
+    }
+
     await db.insert(thu_thach).values({
       ma_bai_hoc: Number(ma_bai_hoc),
       cau_hoi,
@@ -90,6 +103,20 @@ export async function PUT(req: NextRequest) {
     if (cau_hoi) updateData.cau_hoi = cau_hoi;
     if (loai_thu_thach) updateData.loai_thu_thach = loai_thu_thach;
     if (ma_bai_hoc !== undefined) updateData.ma_bai_hoc = Number(ma_bai_hoc);
+
+    // Nếu có cập nhật mã bài học, kiểm tra xem nó có tồn tại không
+    if (ma_bai_hoc !== undefined) {
+      const lessonExists = await db.query.bai_hoc.findFirst({
+        where: (tbl, { eq }) => eq(tbl.ma_bai_hoc, Number(ma_bai_hoc)),
+        columns: { ma_bai_hoc: true },
+      });
+      if (!lessonExists) {
+        return NextResponse.json(
+          { message: `Mã bài học '${ma_bai_hoc}' không tồn tại.` },
+          { status: 404 }
+        );
+      }
+    }
     if (!Object.keys(updateData).length) return NextResponse.json({ message: "Không có trường để cập nhật" }, { status: 400 });
 
     await db.update(thu_thach).set(updateData).where(eq(thu_thach.ma_thu_thach, Number(ma_thu_thach)));

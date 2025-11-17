@@ -128,13 +128,14 @@ export default function AdminUnit() {
 
       toast.success(result.message)
       fetchUnits(searchTerm)
-    } catch (error: any) {
-      toast.error(error.message)
-    } finally {
+
+      // Đóng modal và reset form khi thành công
       setModalType(null)
       seteditingUnit(null)
       setErrors({ ma_ngon_ngu: "", ten_unit: "", mo_ta: "" })
       setIsDirty(false)
+    } catch (error: any) {
+      toast.error(error.message)
     }
   }
 
