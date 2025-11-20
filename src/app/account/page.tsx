@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import toast from "react-hot-toast"
 import { Toaster } from "react-hot-toast";
 import { useAuthStore } from "@/lib/store";
+import { Router } from "next/router"
+import { useRouter } from "next/navigation"
 
 interface UserResponse {
   fullName: string
@@ -20,7 +22,7 @@ export default function AccountPage() {
   const [newPassword, setNewPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
-
+  const router = useRouter()
   const [originalFullName, setOriginalFullName] = useState("")
   const [originalUsername, setOriginalUsername] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -123,7 +125,7 @@ export default function AccountPage() {
       const message = err instanceof Error ? err.message : "Có lỗi xảy ra."
       if (message.includes("401")) {
         toast.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.")
-        window.location.href = "/login"
+        router.push("/login")
       } else {
         toast.error(message)}
     } finally {
@@ -138,7 +140,7 @@ export default function AccountPage() {
       setUser(null);
       setIsAdmin(false);
       toast.success("Đăng xuất thành công!");
-      window.location.href = "/login";
+      router.push("/login")
     } catch (error) {
       toast.error("Đăng xuất thất bại!");
     }
