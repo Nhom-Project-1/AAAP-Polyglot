@@ -7,6 +7,7 @@ import { ArrowLeft, Volume2 } from "lucide-react"
 import Layout from "@/components/layout"
 import UserProgress from "@/components/user-progress"
 import Crying from "@/components/ui/crying"
+import { Skeleton } from "@/components/ui/skeleton"
 import Loading from "@/components/ui/loading"
 
 type Unit = {
@@ -49,8 +50,12 @@ function LessonPageContent() {
   const [error, setError] = useState<string | null>(null)
 
   const playAudio = (src: string) => {
-    const audio = new Audio(src)
-    audio.play()
+    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_AUDIO_BASE_URL;
+    if (!baseUrl) return;
+
+    const fullUrl = `${baseUrl}${src}`; 
+    const audio = new Audio(fullUrl);
+    audio.play();
   }
 
   useEffect(() => {
@@ -82,13 +87,53 @@ function LessonPageContent() {
     fetchData()
   }, [langId, unitId, lessonId])
 
-  if (loading)
-    return <p className="text-center mt-10">Đang tải dữ liệu...</p>
+  const handleStartChallenge = async () => {
+    if (!lesson) return;
+
+    try {
+      const res = await fetch(`/api/challenge?ma_bai_hoc=${lesson.ma_bai_hoc}`);
+      if (!res.ok && res.status !== 404) {
+        const data = await res.json();
+        console.error(data.error || "Lỗi không xác định");
+        return;
+      }
+      router.push(`/course/challenge?id=${lesson.ma_bai_hoc}`);
+    } catch (err) {
+      console.error("Lỗi khi gọi API challenge:", err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <main className="relative p-6 min-h-screen">
+        <div className="absolute top-4 right-6">
+          <UserProgress />
+        </div>
+        <div className="flex items-center gap-4 mb-4">
+          <Skeleton className="h-6 w-6" />
+          <Skeleton className="h-9 w-1/2" />
+        </div>
+        <div className="text-center mt-8">
+          <Skeleton className="h-9 w-1/3 mx-auto" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="border rounded-xl p-4 shadow-md flex items-center justify-between">
+              <div className="space-y-2 flex-1">
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-5 w-1/2" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </main>
+    );
+  }
 
   if (error || !lesson || !unit)
     return (
       <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
-        <Crying size={150} />
         <p className="text-gray-500 text-lg font-medium text-center">
           {error || "Không tìm thấy bài học này"}
         </p>
@@ -151,17 +196,18 @@ function LessonPageContent() {
             </div>
           ))
         ) : (
-          <p className="col-span-full text-gray-500 text-center italic">
-            Hiện tại chưa có từ vựng cho bài này
-          </p>
-        )}
+          <div className="col-span-full flex flex-col items-center mt-12 space-y-4 text-center text-gray-500 italic">
+            <Crying size={150} />
+            <p>Hiện tại chưa có từ vựng cho bài này</p>
+          </div>
+                )}
       </div>
 
       <div className="flex justify-center mt-12 mb-6">
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => router.push("/course/challenge")}
+          onClick={handleStartChallenge}
           className="bg-pink-400 text-white px-8 py-3 rounded-xl font-semibold shadow-md hover:bg-pink-500 transition cursor-pointer"
         >
           Bắt đầu làm bài

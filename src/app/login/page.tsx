@@ -64,18 +64,13 @@ export default function LoginPage() {
 
       setUser(data.user);
       setIsLoggedIn(true);
-      if (data.user.role === "admin") {
-        setIsAdmin(true);
-        router.push("/admin");
+      const langRes = await fetch("/api/user-language", { credentials: "include" })
+      const langData = await langRes.json()
+
+      if (langData.current) {
+        router.push(`/course?lang=${langData.current.id}`)
       } else {
-        const langRes = await fetch("/api/user-language", { credentials: "include" })
-        const langData = await langRes.json()
-  
-        if (langData.current) {
-          router.push(`/course?lang=${langData.current.id}`)
-        } else {
-          router.push("/course/choose")
-        }
+        router.push("/course/choose")
       }
     } catch (err) {
       console.error(err)

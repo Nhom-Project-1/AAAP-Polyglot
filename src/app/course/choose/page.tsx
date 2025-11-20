@@ -6,6 +6,7 @@ import ReactCountryFlag from "react-country-flag"
 import toast, { Toaster } from "react-hot-toast"
 import { useRouter } from "next/navigation"
 import Loading from "@/components/ui/loading"
+import { Skeleton } from "@/components/ui/skeleton"
 
 type Language = {
   ma_ngon_ngu: number
@@ -64,8 +65,6 @@ export default function ChooseLanguagePage() {
     }
   }
 
-  if (loading) return <Loading />
-
   return (
     <Layout>
       <div className="max-w-4xl mx-auto p-6">
@@ -73,6 +72,21 @@ export default function ChooseLanguagePage() {
           Chọn một ngôn ngữ bạn muốn học
         </h1>
 
+        {loading && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 justify-items-center">
+            {[...Array(4)].map((_, i) => (
+              <div
+                key={i}
+                className="relative w-40 h-40 flex flex-col items-center justify-center rounded-2xl shadow bg-white p-4"
+              >
+                <Skeleton className="w-12 h-12 rounded-md" />
+                <Skeleton className="h-4 w-24 mt-3" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!loading && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 justify-items-center">
           {languages.map((lang) => {
             const isActive = selected === lang.ma_ngon_ngu
@@ -114,6 +128,7 @@ export default function ChooseLanguagePage() {
             )
           })}
         </div>
+        )}
       </div>
 
       <Toaster position="top-center" reverseOrder={false} />

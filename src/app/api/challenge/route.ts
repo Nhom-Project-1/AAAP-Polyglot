@@ -1,5 +1,5 @@
-import { eq } from 'drizzle-orm';
-import { NextResponse } from 'next/server';
+import { and, eq, asc } from "drizzle-orm"
+import { NextResponse } from "next/server"
 import { db } from '../../../../db/drizzle';
 import { thu_thach } from '../../../../db/schema';
 
@@ -15,19 +15,16 @@ export async function GET(request: Request) {
       );
     }
 
+    // Lấy toàn bộ dữ liệu thử thách, bao gồm cả các lựa chọn
     const challenges = await db.query.thu_thach.findMany({
       where: eq(thu_thach.ma_bai_hoc, Number(ma_bai_hoc)),
+      with: {
+        lua_chon_thu_thach: {
+        }
+      },
     });
 
-    if (!challenges || challenges.length === 0) {
-      return NextResponse.json(
-        { message: `Không có bài học có mã ${ma_bai_hoc}` },
-        { status: 404 },
-      );
-    }
-
     return NextResponse.json({
-      message: `Tìm thấy ${challenges.length} thử thách cho bài học ${ma_bai_hoc}`,
       challenges,
     });
   } catch (error) {

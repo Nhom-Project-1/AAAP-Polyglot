@@ -24,8 +24,9 @@ export default function RootLayout({
 }>) {
   const router = useRouter();
   const { isLoggedIn, setIsLoggedIn, setUser, setIsAdmin } = useAuthStore();
-  if (!isLoggedIn) router.push('/login');
   useEffect(() => {
+    document.title = "AAAP - From Word to World";
+
     const fetchUser = async () => {
       try {
         const res = await fetch('/api/user');

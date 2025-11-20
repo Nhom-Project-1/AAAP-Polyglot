@@ -13,18 +13,24 @@ interface Firework {
 
 interface CongratsProps {
   show: boolean
-  onRestart?: () => void;
+  diemMoi: number
+  message?: string
+  onRestart?: () => void
 }
 
-export default function Congrats({ show, onRestart }: CongratsProps) {
+export default function CongratModal({ show, diemMoi = 0, message: finalMessage, onRestart }: CongratsProps) {
   const router = useRouter()
   const [isClient, setIsClient] = useState(false)
   const [fireworks, setFireworks] = useState<Firework[]>([])
   const [loading, setLoading] = useState(false)
+  const [xp, setXp] = useState(diemMoi) // state lưu XP vừa parse
+  const [message, setMessage] = useState<string | undefined>()
 
   useEffect(() => {
     setIsClient(true)
-  }, [])
+    setXp(diemMoi) // cập nhật XP khi props thay đổi
+    setMessage(finalMessage)
+  }, [diemMoi, finalMessage])
 
   useEffect(() => {
     if (!show || !isClient) {
@@ -54,6 +60,7 @@ export default function Congrats({ show, onRestart }: CongratsProps) {
   }, [show, isClient])
 
   if (!show || !isClient) return null 
+
   const handleContinue = async () => {
     try {
       setLoading(true)
@@ -87,10 +94,7 @@ export default function Congrats({ show, onRestart }: CongratsProps) {
         <div
           key={fw.id}
           className="absolute"
-          style={{
-            left: fw.x,
-            top: fw.y
-          }}
+          style={{ left: fw.x, top: fw.y }}
         >
           {[...Array(12)].map((_, i) => {
             const angle = (i / 12) * Math.PI * 2
@@ -138,23 +142,26 @@ export default function Congrats({ show, onRestart }: CongratsProps) {
         Hoàn thành
       </motion.h1>
 
-      <motion.p
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.6 }}
         className="text-lg text-pink-500 mb-8 z-10"
       >
-        Bạn đã được cộng 10xp
-      </motion.p>
+        {message ? (
+          <p className="text-lg mb-6 text-center max-w-md">{message}</p>
+        ) : (
+          <p className="text-lg mb-6">Chúng mình đang tính điểm cho bạn 😎, đợi xíu nhé…</p>
+        )}
+      </motion.div>
 
       <div className="flex gap-10 z-10">
         <motion.button
           whileTap={{ scale: 0.95 }}
           whileHover={{ scale: 1.05 }}
-          onClick={() => {
-            onRestart?.()
-          }}
-          className="px-7 py-3 bg-white text-pink-500 font-semibold rounded-2xl shadow-md border border-pink-300 hover:bg-pink-100 transition cursor-pointer"          >
+          onClick={() => onRestart?.()}
+          className="px-7 py-3 bg-white text-pink-500 font-semibold rounded-2xl shadow-md border border-pink-300 hover:bg-pink-100 transition cursor-pointer"
+        >
           Làm lại thử thách
         </motion.button>
 

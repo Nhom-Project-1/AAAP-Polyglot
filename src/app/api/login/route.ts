@@ -34,31 +34,8 @@ export async function POST(req: NextRequest) {
       )
       .limit(1);
 
-    let dbUser = users[0];
-    let role = 'user';
-
-    if (!dbUser) {
-      const admins = await db
-        .select({
-          ma_admin: schema.admin.ma_admin,
-          email: schema.admin.email,
-          ten_dang_nhap: schema.admin.ten_dang_nhap,
-          mat_khau_hash: schema.admin.mat_khau_hash,
-        })
-        .from(schema.admin)
-        .where(
-          or(
-            eq(schema.admin.email, identifier),
-            eq(schema.admin.ten_dang_nhap, identifier),
-          ),
-        )
-        .limit(1);
-      
-      if (admins[0]) {
-        dbUser = { ...admins[0], ma_nguoi_dung: admins[0].ma_admin, ho_ten: 'Admin' };
-        role = 'admin';
-      }
-    }
+    const dbUser = users[0];
+    const role = 'user';
 
     if (!dbUser) {
       return NextResponse.json(
@@ -74,6 +51,13 @@ export async function POST(req: NextRequest) {
         { status: 401 },
       );
     }
+
+    // Đảm bảo người dùng luôn có bản ghi trong bảng xếp hạng khi đăng nhập
+    // Nếu đã tồn tại, lệnh onConflictDoNothing sẽ bỏ qua và không làm gì cả.
+    await db.insert(schema.bang_xep_hang).values({
+      ma_nguoi_dung: dbUser.ma_nguoi_dung,
+      tong_diem_xp: 0,
+    }).onConflictDoNothing();
 
     const token = jwt.sign(
       {

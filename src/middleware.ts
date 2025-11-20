@@ -1,83 +1,89 @@
+export const runtime = 'nodejs';
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import jwt from "jsonwebtoken";
+import jwt from 'jsonwebtoken';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
-// 🟢 Danh sách route public (không cần đăng nhập)
-const PUBLIC_ROUTES = [
-  "/",
-  "/login",
-  "/signup",
-  "/api/signup",
-  "/api/login",
-];
+// 🟢 Public routes that do not require authentication
+const PUBLIC_ROUTES = ['/', '/login', '/loginAdmin', '/signup', '/api/signup', '/api/login', '/api/admin/login'];
 
-// 🟠 Danh sách route cần bảo vệ
-const PROTECTED_ROUTES = [
-  "/account",
-  "/course",
-  "/api/update",
-];
+// 🔴 Admin-only routes
+const ADMIN_ROUTES = ['/admin', '/api/admin'];
 
-const ADMIN_ROUTES = [
-  "/admin",
-  "/api/admin",
-];
+// 🔵 User-only routes that admins should not access
+const USER_ONLY_ROUTES = ['/course', '/account', '/api/user-language', '/api/challenge', '/api/update'];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // ✅ Cho phép các route public truy cập
-  if (PUBLIC_ROUTES.some((path) => pathname.startsWith(path))) {
+  // Allow access to public routes
+  const isPublic = PUBLIC_ROUTES.some((path) => {
+    if (path === "/") return pathname === "/";
+    return pathname.startsWith(path);
+  });
+
+  if (isPublic) {
     return NextResponse.next();
   }
 
-  // 🔐 Kiểm tra JWT trong cookie
-  const token = req.cookies.get("token")?.value;
+  // For all other routes, check for a valid token
+  const token = req.cookies.get('token')?.value;
 
   if (!token) {
-    // Nếu không có token → redirect về /login
-    if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const loginUrl = req.nextUrl.clone();
-    loginUrl.pathname = "/login";
-    loginUrl.searchParams.set("redirect_url", req.nextUrl.toString());
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(new URL('/login', req.url));
   }
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    const isAdmin = decoded.role === "admin";
+    const isAdmin = decoded.role === 'admin';
 
-    if (ADMIN_ROUTES.some((path) => pathname.startsWith(path))) {
-      if (!isAdmin) {
-        const loginUrl = req.nextUrl.clone();
-        loginUrl.pathname = "/login";
-        loginUrl.searchParams.set("redirect_url", req.nextUrl.toString());
-        return NextResponse.redirect(loginUrl);
+    const isAdminRoute = ADMIN_ROUTES.some((path) => pathname.startsWith(path));
+    const isUserOnlyRoute = USER_ONLY_ROUTES.some((path) => pathname.startsWith(path));
+
+    if (isAdmin) {
+      if (isUserOnlyRoute) {
+        // Admin trying to access a user-only route
+        if (pathname.startsWith('/api/')) {
+          return NextResponse.json({ error: 'Forbidden for admin role' }, { status: 403 });
+        }
+        return NextResponse.redirect(new URL('/admin', req.url));
+      }
+    } else { // Regular user
+      if (isAdminRoute) {
+        // User trying to access an admin route
+        if (pathname.startsWith('/api/')) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+        return NextResponse.redirect(new URL('/login', req.url));
       }
     }
-    // Token hợp lệ → cho phép đi tiếp
+
+    // If we reach here, access is granted
     return NextResponse.next();
   } catch (err) {
-    console.error("❌ Token không hợp lệ:", err);
+    console.error('❌ Invalid Token:', err);
 
-    // Token hết hạn hoặc không hợp lệ → xóa cookie + redirect login
+    // If the token is invalid, delete the cookie and redirect to login
     const response =
-      pathname.startsWith("/api/")
-        ? NextResponse.json({ error: "Token expired or invalid" }, { status: 401 })
-        : NextResponse.redirect(new URL("/login", req.url));
+      pathname.startsWith('/api/')
+        ? NextResponse.json(
+            { error: 'Token expired or invalid' },
+            { status: 401 },
+          )
+        : NextResponse.redirect(new URL('/login', req.url));
 
-    response.cookies.delete("token");
+    response.cookies.delete('token');
     return response;
   }
 }
 
-// ⚙️ Cấu hình matcher để middleware áp dụng cho tất cả route (trừ _next, favicon,...)
+// Match all routes except for static assets and Next.js internals
 export const config = {
-  matcher: ["/((?!_next|.*\\..*|favicon.ico).*)"],
+  matcher: ['/((?!_next|.*\\..*|favicon.ico).*)'],
 };

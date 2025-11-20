@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { and, desc, eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import db, { schema } from '../../../../db/drizzle';
@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
 
     // 🧠 Kiểm tra người dùng có tồn tại
     const user = await db.query.nguoi_dung.findFirst({
+      columns: { ma_nguoi_dung: true },
       where: (tbl, { eq }) => eq(tbl.ma_nguoi_dung, Number(ma_nguoi_dung)),
     });
     if (!user)
@@ -100,36 +101,56 @@ export async function POST(req: NextRequest) {
       langName = lang.ten_ngon_ngu;
     }
 
-    // 🧹 Reset tất cả ngôn ngữ về false
+    // First, set all of the user's languages to inactive
     await db
       .update(schema.nguoi_dung_ngon_ngu)
       .set({ is_active: false })
       .where(eq(schema.nguoi_dung_ngon_ngu.ma_nguoi_dung, ma_nguoi_dung));
 
-    // 🔁 Kiểm tra bản ghi hiện có
-    const existing = await db.query.nguoi_dung_ngon_ngu.findFirst({
-      where: (tbl, { and, eq }) =>
-        and(eq(tbl.ma_nguoi_dung, ma_nguoi_dung), eq(tbl.ma_ngon_ngu, langId)),
-    });
-
-    if (existing) {
-      // ➕ Nếu có rồi → bật lại `is_active`
-      await db
-        .update(schema.nguoi_dung_ngon_ngu)
-        .set({ is_active: true })
-        .where(
-          and(
-            eq(schema.nguoi_dung_ngon_ngu.ma_nguoi_dung, ma_nguoi_dung),
-            eq(schema.nguoi_dung_ngon_ngu.ma_ngon_ngu, langId),
-          ),
-        );
-    } else {
-      // ➕ Nếu chưa có → thêm mới
-      await db.insert(schema.nguoi_dung_ngon_ngu).values({
-        ma_nguoi_dung,
+    // Then, upsert the new active language
+    await db
+      .insert(schema.nguoi_dung_ngon_ngu)
+      .values({
+        ma_nguoi_dung: ma_nguoi_dung,
         ma_ngon_ngu: langId,
         is_active: true,
+      })
+      .onConflictDoUpdate({
+        target: [
+          schema.nguoi_dung_ngon_ngu.ma_nguoi_dung,
+          schema.nguoi_dung_ngon_ngu.ma_ngon_ngu,
+        ],
+        set: { is_active: true },
       });
+
+    // --- Create initial progress (tien_do) for all lessons of this language ---
+    try {
+      // select all lessons (bai_hoc) that belong to units of this language
+      const lessons = await db
+        .select({ ma_bai_hoc: schema.bai_hoc.ma_bai_hoc })
+        .from(schema.bai_hoc)
+        .innerJoin(
+          schema.unit,
+          eq(schema.unit.ma_don_vi, schema.bai_hoc.ma_don_vi),
+        )
+        .where(eq(schema.unit.ma_ngon_ngu, langId));
+
+      const toInsert = lessons.map((l: any) => ({
+        ma_nguoi_dung,
+        ma_bai_hoc: l.ma_bai_hoc,
+        diem_kinh_nghiem: 0,
+        so_tim_con_lai: 5,
+        trang_thai: 'dang_hoc',
+      }));
+
+      if (toInsert.length > 0) {
+        // insert many, but don't override existing progress (do nothing on conflict)
+        // Type cast to avoid tuple type error in TS for variable-length arrays
+        await db.insert(schema.tien_do).values(toInsert as any).onConflictDoNothing();
+      }
+    } catch (err) {
+      // non-fatal: log but continue — user language is still set
+      console.error('Lỗi khi tạo tiến độ ban đầu:', err);
     }
 
     // ✅ Trả về kết quả
