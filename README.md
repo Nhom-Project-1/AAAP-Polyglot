@@ -71,4 +71,3 @@ npm install react-confetti
 - quiz: Nội dung của các câu hỏi và các đáp án
 - challenge-header: Chứa thanh progress, số tim và nút thoát
 - challengefooter: chứa nút kiểm tra, hiện đáp án, biến mất thay = nút "Tiếp tục" sau khi hiện đáp án
-- exit-modal: Hiện lên khi ấn nút thoát
