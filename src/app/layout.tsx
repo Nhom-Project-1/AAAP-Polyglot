@@ -2,7 +2,6 @@
 
 import { useAuthStore } from '@/lib/store';
 import { Geist, Geist_Mono } from 'next/font/google';
-import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import './globals.css';
@@ -22,8 +21,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const router = useRouter();
-  const { isLoggedIn, setIsLoggedIn, setUser, setIsAdmin } = useAuthStore();
+  const { setIsLoggedIn, setUser, setIsAdmin } = useAuthStore();
   useEffect(() => {
     document.title = "AAAP - From Word to World";
 

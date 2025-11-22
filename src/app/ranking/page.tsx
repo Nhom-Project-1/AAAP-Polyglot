@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import Layout from "@/components/layout"
-import { motion } from "framer-motion"
-import { Crown } from "lucide-react"
-import { useAuthStore } from "@/lib/store"
 import Crying from "@/components/ui/crying"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useAuthStore } from "@/lib/store"
+import { motion } from "framer-motion"
+import { Crown } from "lucide-react"
+import { useEffect, useState } from "react"
 
 interface RankingUser {
   ten_dang_nhap: string;
@@ -32,17 +32,21 @@ export default function RankingPage() {
       try {
         setLoading(true)
         const res = await fetch("/api/ranking/top_ranking", {
-                  method: "GET",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  credentials: "include",
-                })
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+        })
         const data = await res.json()
         if (!res.ok) throw new Error(data.error || "Không thể tải bảng xếp hạng.")
         setRankingData(data)
-      } catch (err: any) {
-        setError(err.message)
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError(err.message)
+        } else {
+          setError("Đã xảy ra lỗi không xác định")
+        }
       } finally {
         setLoading(false)
       }

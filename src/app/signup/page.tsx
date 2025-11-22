@@ -1,85 +1,85 @@
-  "use client"
-  import { useState } from "react"
-  import { Button } from "@/components/ui/button"
-  import { useRouter } from "next/navigation"
-  import toast from "react-hot-toast"
+"use client"
+import { Button } from "@/components/ui/button"
+import Image from "next/image"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+import toast from "react-hot-toast"
 
-  export default function RegisterPage() {
-    const router = useRouter()
+export default function RegisterPage() {
+  const router = useRouter()
 
-    const [fullName, setFullName] = useState("")
-    const [username, setUsername] = useState("")
-    const [email, setEmail] = useState("")
-    const [password, setPassword] = useState("")
-    const [showPassword, setShowPassword] = useState(false);
-    const [showVerification, setShowVerification] = useState  (false)
-    const [verificationCode, setVerificationCode] = useState("")
-    const [verificationError, setVerificationError] = useState("")
-    const [isLoading, setIsLoading] = useState(false)
-    const [token, setToken] = useState("");
+  const [fullName, setFullName] = useState("")
+  const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false);
+  const [showVerification, setShowVerification] = useState(false)
+  const [verificationCode, setVerificationCode] = useState("")
+  const [verificationError, setVerificationError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [token, setToken] = useState("");
 
-    const handleSignUp = async (e: React.FormEvent) => {
-      e.preventDefault()
-      setIsLoading(false)
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(false)
 
-      try {
-        const res = await fetch("/api/signup", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fullName, username, email, password }),
-        })
+    try {
+      const res = await fetch("/api/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fullName, username, email, password }),
+      })
 
-        const data = await res.json()
-        if (res.ok) {
-          toast.success("Mã xác thực đã được gửi tới email của bạn!")
-          setToken(data.token);
-          setShowVerification(true)
-        } else {
-          toast.error(data?.error || "Đăng ký thất bại")
-        }
-      } catch (err) {
-        console.error("Signup error:", err)
-        toast.error("Có lỗi xảy ra khi đăng ký.")
-      } finally {
-        setIsLoading(false)
+      const data = await res.json()
+      if (res.ok) {
+        toast.success("Mã xác thực đã được gửi tới email của bạn!")
+        setToken(data.token);
+        setShowVerification(true)
+      } else {
+        toast.error(data?.error || "Đăng ký thất bại")
       }
+    } catch (err) {
+      console.error("Signup error:", err)
+      toast.error("Có lỗi xảy ra khi đăng ký.")
+    } finally {
+      setIsLoading(false)
     }
+  }
 
-    const handleVerify = async () => {
-      if (!verificationCode.trim()) {
+  const handleVerify = async () => {
+    if (!verificationCode.trim()) {
       toast.error("Vui lòng nhập mã xác thực.")
       return
     }
-      setVerificationError(""); 
-      setIsLoading(true)
-      try {
-        const res = await fetch("/api/signup/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            token, 
-            code: verificationCode,
-          }),
-        })
-        const data = await res.json()
-        if (res.ok) {
-          toast.success("Đăng ký thành công! Đang chuyển hướng...")
-          setVerificationError("")
-          setTimeout(() => router.push("/course/choose"), 2000)
-        } else {
-          toast.error(data?.error || "Mã xác thực không đúng.")
-        }
-      } catch (err) {
-        console.error("Verification error:", err)
-        toast.error("Có lỗi xảy ra khi xác thực.")
-      } finally {
-        setIsLoading(false)
+    setVerificationError(""); 
+    setIsLoading(true)
+    try {
+      const res = await fetch("/api/signup/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          token, 
+          code: verificationCode,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success("Đăng ký thành công! Đang chuyển hướng...")
+        setVerificationError("")
+        setTimeout(() => router.push("/course/choose"), 2000)
+      } else {
+        toast.error(data?.error || "Mã xác thực không đúng.")
       }
+    } catch (err) {
+      console.error("Verification error:", err)
+      toast.error("Có lỗi xảy ra khi xác thực.")
+    } finally {
+      setIsLoading(false)
     }
+  }
 
-
-    return (
+  return (
     <div className="min-h-screen flex items-center justify-center bg-white-50">
       <div className="w-full max-w-md bg-gray p-8 rounded-2xl shadow-md">
         <h1 className="text-2xl font-bold text-center mb-2">
@@ -144,9 +144,11 @@
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute inset-y-0 right-0 flex items-center pr-3"
               >
-                <img
+                <Image
                   src={showPassword ? "/openeye.svg" : "/closeeye.svg"}
                   alt={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                  width={20}
+                  height={20}
                   className="w-5 h-5 opacity-70 hover:opacity-100 transition"
                 />
               </button>

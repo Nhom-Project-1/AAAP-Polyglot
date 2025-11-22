@@ -1,14 +1,13 @@
 "use client"
-import { useEffect, useState } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
-import Quiz from "./quiz"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Suspense, useEffect, useState } from "react"
 import Footer from "./challenge-footer"
 import Header from "./challenge-header"
-import ExitModal from "./exit-modal"
 import CongratModal from "./congrat"
+import ExitModal from "./exit-modal"
 import FailModal from "./fail"
-import Crying from "@/components/ui/crying"
-import { Skeleton } from "@/components/ui/skeleton"
+import Quiz from "./quiz"
 
 type LuaChonThuThach = {
   ma_lua_chon: number
@@ -28,11 +27,19 @@ type Challenge = {
 
 type ModalState = 'none' | 'exit' | 'congrats' | 'fail';
 
-export default function ChallengePageWrapper() {
+function ChallengePageContent() {
   const searchParams = useSearchParams()
   const maBaiHoc = Number(searchParams.get("id"))
   if (!maBaiHoc) return <p>Không tìm thấy bài học</p>
   return <ChallengePage maBaiHoc={maBaiHoc} />
+}
+
+export default function ChallengePageWrapper() {
+  return (
+    <Suspense fallback={<Skeleton className="h-screen w-full" />}>
+      <ChallengePageContent />
+    </Suspense>
+  )
 }
 
 const INITIAL_HEARTS = 5;
@@ -129,42 +136,6 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
     }
   }, [isOutOfHearts])
 
-  // if (!isFetchingChallenges) {
-  //   const handleBackToCourse = async () => {
-  //     try {
-  //       setLoading(true)
-  //       const res = await fetch("/api/user-language", {
-  //         method: "GET",
-  //         credentials: "include",
-  //       })
-  //       const data = await res.json()
-
-  //       if (res.ok && data.current?.id) {
-  //         router.push(`/course?lang=${data.current.id}`)
-  //       } else {
-  //         router.push("/login")
-  //       }
-  //     } catch (err) {
-  //       console.error("Lỗi khi lấy ngôn ngữ active:", err)
-  //       router.push("/login")
-  //     } finally {
-  //       setLoading(false)
-  //     }
-  //   }
-
-  //   return (
-  //     <div className="flex flex-col min-h-screen items-center justify-center gap-4">
-  //       <Crying/>
-  //       <p className="text-xl mt-8">Chưa có thử thách cho bài học này.</p>
-  //       <button
-  //         onClick={handleBackToCourse}
-  //         className="px-6 py-3 text-pink-400 rounded-lg underline hover:text-pink-600 transition cursor-pointer"
-  //       >
-  //         Chọn bài học khác
-  //       </button>
-  //     </div>
-  //   )
-  // }
   if (loading||!currentChallenge) {
     return (
       <div className="flex flex-col min-h-screen">
