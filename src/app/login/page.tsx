@@ -1,19 +1,20 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/lib/store";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function LoginPage() {
   const router = useRouter()
-  const [checkingRedirect, setCheckingRedirect] = useState(true)
+
   const [identifier, setIdentifier] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-  const { setIsLoggedIn, setUser, setIsAdmin } = useAuthStore();
+  const { setIsLoggedIn, setUser } = useAuthStore();
 
   useEffect(() => {
     const checkLogin = async () => {
@@ -34,7 +35,7 @@ export default function LoginPage() {
       } catch (err) {
         console.error("Không lấy được user:", err)
       } finally {
-        setCheckingRedirect(false)
+        // setCheckingRedirect(false)
       }
     }
 
@@ -116,9 +117,11 @@ export default function LoginPage() {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2"
               >
-                <img
+                <Image
                   src={showPassword ? "/openeye.svg" : "/closeeye.svg"}
                   alt={showPassword ? "Hiện mật khẩu" : "Ẩn mật khẩu"}
+                  width={20}
+                  height={20}
                   className="w-5 h-5"
                 />
               </button>

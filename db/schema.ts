@@ -1,12 +1,18 @@
 import {
-  pgTable, serial, integer, varchar, text, timestamp, boolean, date,
-  uniqueIndex
+    boolean,
+    index,
+    integer,
+    pgTable, serial,
+    text, timestamp,
+    uniqueIndex,
+    varchar
 } from "drizzle-orm/pg-core";
 
 export const nguoi_dung = pgTable(
   "nguoi_dung",
   {
     ma_nguoi_dung: serial("ma_nguoi_dung").primaryKey(),
+ 
     ten_dang_nhap: varchar("ten_dang_nhap", { length: 100 }).notNull(),
     email: varchar("email", { length: 150 }).notNull(),
     mat_khau_hash: text("mat_khau_hash").notNull(),
@@ -49,7 +55,9 @@ export const unit = pgTable("unit", {
     .references(() => ngon_ngu.ma_ngon_ngu, { onDelete: "cascade" }),
   ten_don_vi: varchar("ten_unit", { length: 100 }).notNull(),
   mo_ta: text("mo_ta"),
-});
+}, (t) => ({
+  unitLangIndex: index("idx_unit_ma_ngon_ngu").on(t.ma_ngon_ngu),
+}));
 
 export const bai_hoc = pgTable("bai_hoc", {
   ma_bai_hoc: serial("ma_bai_hoc").primaryKey(),
@@ -57,7 +65,9 @@ export const bai_hoc = pgTable("bai_hoc", {
     .references(() => unit.ma_don_vi, { onDelete: "cascade" }),
   ten_bai_hoc: varchar("ten_bai_hoc", { length: 100 }).notNull(),
   mo_ta: text("mo_ta"),
-});
+}, (t) => ({
+  baiHocUnitIndex: index("idx_bai_hoc_ma_don_vi").on(t.ma_don_vi),
+}));
 
 
 export const tu_vung = pgTable("tu_vung", {
@@ -69,7 +79,9 @@ export const tu_vung = pgTable("tu_vung", {
   nghia: varchar("nghia", { length: 255 }),
   lien_ket_am_thanh: text("lien_ket_am_thanh"),
   vi_du: text("vi_du"),
-});
+}, (t) => ({
+  tuVungBaiHocIndex: index("idx_tu_vung_ma_bai_hoc").on(t.ma_bai_hoc),
+}));
 
 
 export const thu_thach = pgTable("thu_thach", {
@@ -78,7 +90,9 @@ export const thu_thach = pgTable("thu_thach", {
     .references(() => bai_hoc.ma_bai_hoc, { onDelete: "cascade" }),
   cau_hoi: text("cau_hoi").notNull(),
   loai_thu_thach: varchar("loai_thu_thach", { length: 50 }).notNull(), 
-});
+}, (t) => ({
+  thuThachBaiHocIndex: index("idx_thu_thach_ma_bai_hoc").on(t.ma_bai_hoc),
+}));
 
 export const lua_chon_thu_thach = pgTable("lua_chon_thu_thach", {
   ma_lua_chon: serial("ma_lua_chon").primaryKey(),
@@ -111,7 +125,9 @@ export const bang_xep_hang = pgTable("bang_xep_hang", {
     .references(() => nguoi_dung.ma_nguoi_dung, { onDelete: "cascade" })
     .unique(),
   tong_diem_xp: integer("tong_diem_xp").default(0).notNull(),
-});
+}, (t) => ({
+  xpIndex: index("idx_bang_xep_hang_tong_diem_xp").on(t.tong_diem_xp),
+}));
 
 export const nguoi_dung_ngon_ngu = pgTable(
   "nguoi_dung_ngon_ngu",

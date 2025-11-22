@@ -1,13 +1,15 @@
+
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { useState, useEffect } from "react"
+import { useAuthStore } from "@/lib/store"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { useAuthStore } from "@/lib/store";
+import { useEffect, useState } from "react"
 
 export default function LoginAdminPage() {
   const router = useRouter()
-  const [checkingRedirect, setCheckingRedirect] = useState(true)
+
   const [identifier, setIdentifier] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -31,7 +33,7 @@ export default function LoginAdminPage() {
       } catch (err) {
         console.error("Không lấy được user:", err)
       } finally {
-        setCheckingRedirect(false)
+        // setCheckingRedirect(false)
       }
     }
 
@@ -72,6 +74,8 @@ export default function LoginAdminPage() {
     }
   }
 
+  //if (isLoading || checkingRedirect) return <Loading />
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-white-50">
       <div className="w-full max-w-md bg-gray p-8 rounded-2xl shadow-md">
@@ -106,9 +110,11 @@ export default function LoginAdminPage() {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2"
               >
-                <img
+                <Image
                   src={showPassword ? "/openeye.svg" : "/closeeye.svg"}
                   alt={showPassword ? "Hiện mật khẩu" : "Ẩn mật khẩu"}
+                  width={20}
+                  height={20}
                   className="w-5 h-5"
                 />
               </button>
@@ -117,6 +123,10 @@ export default function LoginAdminPage() {
 
           {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
 
+          {/* <div className="flex justify-center"> */}
+            {/* <Button variant="secondary" className="px-8 py-3 w-40 cursor-pointer" type="submit">
+              Đăng nhập
+            </Button> */}
             <Button
               variant="secondary"
               className="w-40 mx-auto flex justify-center items-center gap-2 cursor-pointer"

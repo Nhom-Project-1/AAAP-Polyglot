@@ -203,7 +203,7 @@ export default function AdminUser() {
           {(() => {
             const pagesToShow = 5
             let start = Math.max(1, currentPage - 2)
-            let end = Math.min(totalPages, start + pagesToShow - 1)
+            const end = Math.min(totalPages, start + pagesToShow - 1)
             if (end - start < pagesToShow - 1) start = Math.max(1, end - pagesToShow + 1)
             return Array.from({ length: end - start + 1 }, (_, i) => start + i)
           })().map(page => (

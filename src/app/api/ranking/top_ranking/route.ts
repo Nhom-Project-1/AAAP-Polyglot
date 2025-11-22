@@ -1,8 +1,8 @@
+import { desc, eq, sql } from "drizzle-orm";
+import jwt from "jsonwebtoken";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "../../../../../db/drizzle";
-import { bang_xep_hang, nguoi_dung, tien_do } from "../../../../../db/schema";
-import { eq, sql, sum, desc } from "drizzle-orm";
-import jwt from "jsonwebtoken";
+import { bang_xep_hang, nguoi_dung } from "../../../../../db/schema";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
@@ -48,11 +48,7 @@ export async function GET(req: NextRequest) {
     let myRank: number | null = null;
     let myScore: number = 0; // Mặc định điểm là 0
     
-    // Đảm bảo người dùng hiện tại có trong bảng xếp hạng, nếu chưa có thì thêm vào với 0 điểm.
-    // Thao tác này an toàn và hiệu quả, không làm gì nếu người dùng đã tồn tại.
-    await db.insert(bang_xep_hang)
-      .values({ ma_nguoi_dung: ma_nguoi_dung as number, tong_diem_xp: 0 })
-      .onConflictDoNothing({ target: bang_xep_hang.ma_nguoi_dung });
+    // Removed redundant insert
 
     // Tìm thông tin của người dùng hiện tại trong bảng xếp hạng
     const myInfoResult = await db.select({ tong_diem_xp: bang_xep_hang.tong_diem_xp }).from(bang_xep_hang).where(eq(bang_xep_hang.ma_nguoi_dung, ma_nguoi_dung as number));

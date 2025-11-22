@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import Layout from '@/components/layout';
@@ -129,7 +130,7 @@ export default function AccountPage() {
       const message = err instanceof Error ? err.message : 'Có lỗi xảy ra.';
       if (message.includes('401')) {
         toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-        window.location.href = '/login';
+        if(window) window.location.href = '/login';
       } else {
         toast.error(message);
       }
@@ -145,7 +146,7 @@ export default function AccountPage() {
       setUser(null);
       setIsAdmin(false);
       toast.success('Đăng xuất thành công!');
-      window.location.href = '/login';
+       if(window)  window.location.href = '/login';
     } catch (error) {
       toast.error('Đăng xuất thất bại!');
     }
@@ -289,6 +290,13 @@ export default function AccountPage() {
               {isLoading ? 'Đang xử lý...' : 'Lưu thay đổi'}
             </Button>
           </form>
+          <Button
+            variant="secondary"
+            onClick={handleLogout}
+            className="px-8 py-3 mx-auto block w-40 rounded-lg text-white transition bg-red-500 hover:bg-red-600 mt-4"
+          >
+            Đăng xuất
+          </Button>
         </div>
       </div>
       <Toaster position="top-center" />
