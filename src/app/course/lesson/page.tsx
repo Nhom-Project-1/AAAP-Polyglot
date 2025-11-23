@@ -50,7 +50,7 @@ function LessonPageContent() {
   const [error, setError] = useState<string | null>(null)
 
   const playAudio = (src: string) => {
-    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_AUDIO_BASE_URL;
+    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_AUDIO_BASE_URL || "";
     if (!baseUrl) return;
 
     const fullUrl = `${baseUrl}${src}`; 

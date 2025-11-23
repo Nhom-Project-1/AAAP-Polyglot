@@ -3,7 +3,7 @@ import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";
 import db from "@/db/drizzle";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
 
 function generateCode() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -55,13 +55,13 @@ export async function POST(req: NextRequest) {
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: process.env.EMAIL_USER || "",
+        pass: process.env.EMAIL_PASS || "",
       },
     });
     try {
       await transporter.sendMail({
-        from: `"AAAP Polyglot" <${process.env.EMAIL_USER}>`,
+        from: `"AAAP Polyglot" <${process.env.EMAIL_USER || ""}>`,
         to: email,
         subject: "Mã xác thực đăng ký tài khoản",
         text: `Mã xác thực của bạn là: ${code}`,

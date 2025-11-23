@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
 
 // 🟢 Public routes that do not require authentication
 const PUBLIC_ROUTES = ['/', '/login', '/loginAdmin', '/signup', '/api/signup', '/api/login', '/api/admin/login'];

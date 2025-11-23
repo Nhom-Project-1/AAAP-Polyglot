@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import db, { schema } from "../../../../../db/drizzle";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
 
 interface DecodedToken extends jwt.JwtPayload {
   email: string;
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
 
     response.cookies.set("token", authToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: (process.env.NODE_ENV || "development") === "production",
       sameSite: "strict",
       path: "/",
       maxAge: 7 * 24 * 60 * 60, // 7 ngày

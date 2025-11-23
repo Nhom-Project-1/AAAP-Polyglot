@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "../../../../../db/drizzle";
 import { bang_xep_hang, nguoi_dung } from "../../../../../db/schema";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
 
 export async function GET(req: NextRequest) {
   try {

@@ -4,9 +4,9 @@ import jwt from "jsonwebtoken";
 import db from "../../../../../db/drizzle";
 import { assertAdmin } from "../../../../../lib/auth";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
-const EMAIL_USER = process.env.EMAIL_USER!;
-const EMAIL_PASS = process.env.EMAIL_PASS!;
+const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
+const EMAIL_USER = process.env.EMAIL_USER || "";
+const EMAIL_PASS = process.env.EMAIL_PASS || "";
 
 function generateCode() {
   return Math.floor(100000 + Math.random() * 900000).toString();
