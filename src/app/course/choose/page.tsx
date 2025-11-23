@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
 import Layout from "@/components/layout"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
 import ReactCountryFlag from "react-country-flag"
 import toast, { Toaster } from "react-hot-toast"
-import { useRouter } from "next/navigation"
-import Loading from "@/components/ui/loading"
-import { Skeleton } from "@/components/ui/skeleton"
 
 type Language = {
   ma_ngon_ngu: number
@@ -16,33 +16,20 @@ type Language = {
 
 export default function ChooseLanguagePage() {
   const router = useRouter()
-  const [languages, setLanguages] = useState<Language[]>([])
   const [selected, setSelected] = useState<number | null>(null)
-  const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
 
-  useEffect(() => {
-    async function loadLanguages() {
-      try {
-        const resLang = await fetch("/api/language")
-        if (!resLang.ok) throw new Error("Không thể lấy danh sách ngôn ngữ")
-        const langData = await resLang.json()
-        setLanguages(Array.isArray(langData) ? langData : [])
-      } catch (err) {
-        console.error(err)
-        toast.error("Không thể tải danh sách ngôn ngữ")
-        setLanguages([])
-      } finally {
-        setLoading(false)
-      }
+  const { data: languages = [], isLoading: loading } = useQuery<Language[]>({
+    queryKey: ['languages'],
+    queryFn: async () => {
+      const res = await fetch("/api/language")
+      if (!res.ok) throw new Error("Không thể lấy danh sách ngôn ngữ")
+      return res.json()
     }
+  })
 
-    loadLanguages()
-  }, [])
-
-  const handleSelect = async (lang: Language) => {
-    setSelected(lang.ma_ngon_ngu)
-
-    try {
+  const selectLanguageMutation = useMutation({
+    mutationFn: async (lang: Language) => {
       const res = await fetch("/api/user-language", {
         method: "POST",
         credentials: "include",
@@ -51,18 +38,27 @@ export default function ChooseLanguagePage() {
           languageId: lang.ma_ngon_ngu,
         }),
       })
-
-      const result = await res.json()
-      if (!res.ok) throw new Error(result.error || "Lưu ngôn ngữ thất bại")
-
+      if (!res.ok) throw new Error("Failed to select language")
+      return res.json()
+    },
+    onSuccess: (_, lang) => {
       toast.success(`Đã chọn ${lang.ten_ngon_ngu}`, { duration: 1500 })
+      // Invalidate user query to refresh user data (e.g. current language)
+      queryClient.invalidateQueries({ queryKey: ['user'] })
+      
       setTimeout(() => {
+        toast.dismiss()
         router.push(`/course?lang=${lang.ma_ngon_ngu}`)
       }, 1000)
-    } catch (error) {
-      console.error(error)
-      toast.error("Không thể lưu ngôn ngữ đã chọn")
+    },
+    onError: () => {
+      toast.error("Có lỗi xảy ra khi chọn ngôn ngữ")
     }
+  })
+
+  const handleSelect = (lang: Language) => {
+    setSelected(lang.ma_ngon_ngu)
+    selectLanguageMutation.mutate(lang)
   }
 
   return (
@@ -94,9 +90,10 @@ export default function ChooseLanguagePage() {
               <button
                 key={lang.ma_ngon_ngu}
                 onClick={() => handleSelect(lang)}
+                disabled={selectLanguageMutation.isPending}
                 className={`relative w-40 h-40 flex flex-col items-center justify-center rounded-2xl shadow transition hover:-translate-y-1 focus:outline-none bg-white cursor-pointer ${
                   isActive ? "ring-2 ring-pink-400" : ""
-                }`}
+                } ${selectLanguageMutation.isPending ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <span
                   className={`absolute top-2 right-2 w-6 h-6 flex items-center justify-center rounded-full ${

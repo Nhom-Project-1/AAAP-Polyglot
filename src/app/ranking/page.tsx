@@ -4,9 +4,9 @@ import Layout from "@/components/layout"
 import Crying from "@/components/ui/crying"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAuthStore } from "@/lib/store"
+import { useQuery } from "@tanstack/react-query"
 import { motion } from "framer-motion"
 import { Crown } from "lucide-react"
-import { useEffect, useState } from "react"
 
 interface RankingUser {
   ten_dang_nhap: string;
@@ -21,39 +21,23 @@ interface RankingData {
 
 export default function RankingPage() {
   const { user, isHydrated } = useAuthStore()
-  const [rankingData, setRankingData] = useState<RankingData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (!isHydrated) return;
-
-    const fetchRanking = async () => {
-      try {
-        setLoading(true)
-        const res = await fetch("/api/ranking/top_ranking", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        })
-        const data = await res.json()
-        if (!res.ok) throw new Error(data.error || "Không thể tải bảng xếp hạng.")
-        setRankingData(data)
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          setError(err.message)
-        } else {
-          setError("Đã xảy ra lỗi không xác định")
-        }
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchRanking()
-  }, [isHydrated])
+  const { data: rankingData, isLoading: loading, error } = useQuery<RankingData>({
+    queryKey: ['ranking'],
+    queryFn: async () => {
+      const res = await fetch("/api/ranking/top_ranking", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Không thể tải bảng xếp hạng.")
+      return data
+    },
+    enabled: isHydrated
+  })
 
   if (loading) {
     return (
@@ -84,7 +68,7 @@ export default function RankingPage() {
       </Layout>
     );
   }
-  if (error) return <Layout><div className="text-center mt-10"><Crying /><p className="mt-4">{error}</p></div></Layout>
+  if (error) return <Layout><div className="text-center mt-10"><Crying /><p className="mt-4">{(error as Error).message}</p></div></Layout>
   if (!rankingData) return <Layout><p className="text-center mt-10">Không có dữ liệu xếp hạng.</p></Layout>
 
   const { topRanking, myRank, myScore } = rankingData

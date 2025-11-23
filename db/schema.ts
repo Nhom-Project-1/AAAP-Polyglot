@@ -1,11 +1,11 @@
 import {
-    boolean,
-    index,
-    integer,
-    pgTable, serial,
-    text, timestamp,
-    uniqueIndex,
-    varchar
+  boolean,
+  index,
+  integer,
+  pgTable, serial,
+  text, timestamp,
+  uniqueIndex,
+  varchar
 } from "drizzle-orm/pg-core";
 
 export const nguoi_dung = pgTable(
@@ -173,4 +173,21 @@ export const tien_do_muc_tieu = pgTable(
     diem_hien_tai: integer("diem_hien_tai").default(0).notNull(),
     hoan_thanh: boolean("hoan_thanh").default(false),
   },
+);
+
+export const bai_hoc_hoan_thanh = pgTable(
+  "bai_hoc_hoan_thanh",
+  {
+    id: serial("id").primaryKey(),
+    ma_nguoi_dung: integer("ma_nguoi_dung")
+      .notNull()
+      .references(() => nguoi_dung.ma_nguoi_dung, { onDelete: "cascade" }),
+    ma_bai_hoc: integer("ma_bai_hoc")
+      .notNull()
+      .references(() => bai_hoc.ma_bai_hoc, { onDelete: "cascade" }),
+    ngay_hoan_thanh: timestamp("ngay_hoan_thanh", { withTimezone: false }).defaultNow(),
+  },
+  (t) => ({
+    uqUserLesson: uniqueIndex("uq_user_lesson_completion").on(t.ma_nguoi_dung, t.ma_bai_hoc),
+  })
 );

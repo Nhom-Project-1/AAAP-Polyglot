@@ -1,15 +1,17 @@
 "use client"
-import { useEffect, useState } from "react"
-import { motion } from "framer-motion"
-import { useRouter, useSearchParams } from "next/navigation"
-import { Skeleton } from "@/components/ui/skeleton"
 import Crying from "@/components/ui/crying"
+import { Skeleton } from "@/components/ui/skeleton"
+import { motion } from "framer-motion"
+import { Check } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { useEffect, useState } from "react"
 
 type Lesson = {
   ma_bai_hoc: number
   ten_bai_hoc: string
   thu_tu: number
   ma_don_vi: number
+  isCompleted?: boolean
 }
 
 type Unit = {
@@ -33,6 +35,7 @@ type ApiLesson = {
   ten_bai_hoc: string;
   thu_tu: number;
   ma_don_vi: number;
+  isCompleted?: boolean;
 };
 
 export default function UnitLesson() {
@@ -66,6 +69,7 @@ export default function UnitLesson() {
             ten_bai_hoc: l.ten_bai_hoc,
             thu_tu: l.thu_tu,
             ma_don_vi: l.ma_don_vi,
+            isCompleted: l.isCompleted,
           }))
           .sort((a: Lesson, b: Lesson) => a.ma_bai_hoc - b.ma_bai_hoc),
         }))
@@ -144,6 +148,8 @@ export default function UnitLesson() {
               {unitLessons.map((lesson, index) => {
                 const waveOffset = Math.sin(index * 1.1) * 120 * direction
                 lessonIndex += 1
+                const isCompleted = lesson.isCompleted
+                
                 return (
                   <div
                     key={lesson.ma_bai_hoc}
@@ -152,7 +158,7 @@ export default function UnitLesson() {
                       transform: `translateX(${waveOffset}px)`,
                     }}
                   >
-                    {index === 0 && (
+                    {index === 0 && !isCompleted && (
                       <motion.span
                         animate={{ y: [0, -6, 0] }}
                         transition={{
@@ -169,16 +175,26 @@ export default function UnitLesson() {
                     <motion.div
                       whileHover={{
                         scale: 1.1,
-                        boxShadow: "0 0 20px rgba(236,72,153,0.6)",
+                        boxShadow: isCompleted 
+                          ? "0 0 20px rgba(234, 179, 8, 0.6)" // Yellow glow for completed
+                          : "0 0 20px rgba(236,72,153,0.6)", // Pink glow for active
                       }}
                       transition={{ type: "spring", stiffness: 300 }}
-                      className="w-20 h-20 flex items-center justify-center rounded-full text-white shadow-lg cursor-pointer bg-pink-400 border-4 border-pink-200"
+                      className={`w-20 h-20 flex items-center justify-center rounded-full text-white shadow-lg cursor-pointer border-4 ${
+                        isCompleted 
+                          ? "bg-yellow-400 border-yellow-200" 
+                          : "bg-pink-400 border-pink-200"
+                      }`}
                       onClick={() =>
                         router.push(`/course/lesson?id=${lesson.ma_bai_hoc}&unit=${unit.ma_don_vi}&lang=${languageId}`)
 
                       }
                     >
-                      <span className="text-lg font-bold">{lessonIndex}</span>
+                      {isCompleted ? (
+                        <Check size={32} strokeWidth={3} />
+                      ) : (
+                        <span className="text-lg font-bold">{lessonIndex}</span>
+                      )}
                     </motion.div>
                   </div>
                 )
