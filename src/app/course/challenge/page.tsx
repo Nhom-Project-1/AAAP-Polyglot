@@ -1,5 +1,8 @@
 "use client"
+import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useAuthStore } from "@/lib/store"
+import { useQuery } from "@tanstack/react-query"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
 import Footer from "./challenge-footer"
@@ -8,6 +11,7 @@ import CongratModal from "./congrat"
 import ExitModal from "./exit-modal"
 import FailModal from "./fail"
 import Quiz from "./quiz"
+import Crying from "@/components/ui/crying"
 
 type LuaChonThuThach = {
   ma_lua_chon: number
@@ -45,13 +49,12 @@ export default function ChallengePageWrapper() {
 const INITIAL_HEARTS = 5;
 
 function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
-  const [challengeIds, setChallengeIds] = useState<number[]>([])
+  const { user } = useAuthStore()
+  const maNguoiDung = user?.id
+
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [currentChallenge, setCurrentChallenge] = useState<Challenge | null>(null)
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null)
   const [hearts, setHearts] = useState(INITIAL_HEARTS)
-  const [maNguoiDung, setMaNguoiDung] = useState<number | null>(null)
-  const [loading, setLoading] = useState(true)
   const [modalState, setModalState] = useState<ModalState>('none');
   const [showResult, setShowResult] = useState(false)
   const [diemMoi, setDiemMoi] = useState<number>(0)
@@ -60,7 +63,6 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
   const [isOutOfHearts, setIsOutOfHearts] = useState(false)
   const [isRestarting, setIsRestarting] = useState(false)
   const [isChecking, setIsChecking] = useState(false)
-  const [isFetchingChallenges, setIsFetchingChallenges] = useState(true);
   const router = useRouter()
 
   const resetChallengeState = () => {
@@ -74,61 +76,38 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
     setFooterResetKey(prev => prev + 1);
   }
 
-  // lấy user
-  useEffect(() => {
-    async function fetchUser() {
-      try {
-        const res = await fetch("/api/user")
-        const data = await res.json()
-        if (data.id) setMaNguoiDung(data.id)
-      } catch (err) {
-        console.error("Không lấy được user:", err)
-      }
-    }
-    fetchUser()
-  }, [])
+  // Fetch challenge IDs
+  const { data: challengeData, isLoading: isFetchingChallenges } = useQuery({
+    queryKey: ['challenges', maBaiHoc],
+    queryFn: async () => {
+      const res = await fetch(`/api/challenge?ma_bai_hoc=${maBaiHoc}`)
+      return res.json()
+    },
+    enabled: !!maBaiHoc
+  })
 
-  // lấy danh sách challenge
+  const challengeIds = challengeData?.challenges?.map((c: any) => c.ma_thu_thach) || []
+  
+  // Update hearts from API response
   useEffect(() => {
-    async function fetchChallengeIds() {
-      if (!maBaiHoc) return
-      try {
-        const res = await fetch(`/api/challenge?ma_bai_hoc=${maBaiHoc}`)
-        const data = await res.json()
-        if (data.challenges) {
-          const ids = data.challenges.map((c: any) => c.ma_thu_thach)
-          setChallengeIds(ids)
-        }
-      } catch (err) {
-        console.error("Lấy danh sách thử thách thất bại:", err)
-      }
-      finally {
-      setIsFetchingChallenges(false);
+    if (typeof challengeData?.hearts === 'number') {
+      setHearts(challengeData.hearts)
     }
-    }
-    fetchChallengeIds()
-  }, [maBaiHoc])
+  }, [challengeData?.hearts])
 
-  useEffect(() => {
-    async function fetchChallengeDetail() {
-      if (challengeIds.length === 0) return
-      const id = challengeIds[currentIndex]
-      if (isRestarting) {
-        setLoading(true)
-        setIsRestarting(false) 
-      }
-      try {
-        const res = await fetch(`/api/challenge/${id}`)
-        const data = await res.json()
-        if (data.challenge) setCurrentChallenge(data.challenge)
-      } catch (err) {
-        console.error("Lấy chi tiết thử thách thất bại:", err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    if (challengeIds.length > 0) fetchChallengeDetail()
-  }, [challengeIds, currentIndex])
+  // Fetch challenge detail
+  const currentChallengeId = challengeIds[currentIndex]
+  const { data: challengeDetailData, isLoading: isLoadingDetail } = useQuery({
+    queryKey: ['challenge', currentChallengeId],
+    queryFn: async () => {
+      const res = await fetch(`/api/challenge/${currentChallengeId}`)
+      return res.json()
+    },
+    enabled: !!currentChallengeId
+  })
+
+  const currentChallenge = challengeDetailData?.challenge || null
+  const loading = isFetchingChallenges || (!!currentChallengeId && isLoadingDetail)
 
   useEffect(() => {
     if (isOutOfHearts) {
@@ -136,7 +115,24 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
     }
   }, [isOutOfHearts])
 
-  if (loading||!currentChallenge) {
+  // Logic to show "No challenges" message
+  if (!isFetchingChallenges && challengeIds.length === 0) {
+    return (
+      <div className="flex flex-col min-h-screen items-center justify-center gap-4">
+        <Crying size={150} />
+        <p className="text-xl text-slate-500">Bài học này chưa có thử thách nào.</p>
+        <Button 
+          variant="secondary" 
+          className="bg-pink-500 text-white hover:bg-pink-600 cursor-pointer"
+          onClick={() => router.back()}
+        >
+          Quay lại
+        </Button>
+      </div>
+    )
+  }
+
+  if (loading || !currentChallenge) {
     return (
       <div className="flex flex-col min-h-screen">
         {/* Skeleton Header */}
@@ -171,22 +167,28 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
     setSelectedChoice(id)
   }
 
-    const handleContinue = () => {
-      if (isOutOfHearts) return 
-      setSelectedChoice(null)
-      setShowResult(false)
-      if (currentIndex + 1 < challengeIds.length) {
-        setCurrentIndex(currentIndex + 1)
-      } else {
-          setModalState('congrats');
-      }
+  const handleContinue = () => {
+    if (isOutOfHearts) return 
+    setSelectedChoice(null)
+    setShowResult(false)
+    if (currentIndex + 1 < challengeIds.length) {
+      setCurrentIndex(currentIndex + 1)
+    } else {
+        // Call API to mark lesson as completed
+        fetch('/api/user/progress', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ma_bai_hoc: maBaiHoc }),
+        }).catch(err => console.error("Failed to mark lesson complete", err));
+
+        setModalState('congrats');
     }
+  }
 
   const handleRestartChallenge = () => {
     resetChallengeState();
-    setIsRestarting(true); // Đánh dấu là đang restart
+    setIsRestarting(true);
     setCurrentIndex(0);
-    setCurrentChallenge(null);
   }
 
   // Tính toán progress. Nếu đã show kết quả, tính cả câu hiện tại là đã hoàn thành.
@@ -196,7 +198,7 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
 
   // Tìm đáp án đúng của câu hỏi hiện tại để thực hiện Optimistic UI
   const correctChoiceId = currentChallenge?.lua_chon_thu_thach.find(
-    (choice) => choice.dung
+    (choice: any) => choice.dung
   )?.ma_lua_chon
 
   return (
@@ -207,7 +209,7 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
         onClose={() => setModalState('none')} 
         maBaiHoc={maBaiHoc}
       />
-  <CongratModal show={modalState === 'congrats'} diemMoi={diemMoi} message={completionMessage ?? undefined} onRestart={handleRestartChallenge} />
+      <CongratModal show={modalState === 'congrats'} diemMoi={diemMoi} message={completionMessage ?? undefined} onRestart={handleRestartChallenge} />
       <Quiz challenge={currentChallenge} onSelect={handleSelect} selected={selectedChoice} showResult={showResult} isChecking={isChecking} />
       {maNguoiDung && currentChallenge && (
         <Footer
@@ -235,5 +237,4 @@ function ChallengePage({ maBaiHoc }: { maBaiHoc: number }) {
       <FailModal show={modalState === 'fail'} onRestart={handleRestartChallenge} maBaiHoc={maBaiHoc} />
     </div>
   )
-  
 }

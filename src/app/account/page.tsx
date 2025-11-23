@@ -4,6 +4,7 @@
 import Layout from '@/components/layout';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/lib/store';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -23,8 +24,8 @@ export default function AccountPage() {
 
   const [originalFullName, setOriginalFullName] = useState('');
   const [originalUsername, setOriginalUsername] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
+  
+  const queryClient = useQueryClient();
   const { setIsLoggedIn, setUser, setIsAdmin } = useAuthStore();
 
   const [errors, setErrors] = useState({
@@ -32,30 +33,62 @@ export default function AccountPage() {
     username: '',
   });
 
+  const { data: userData, isLoading: isFetchingUser } = useQuery<UserResponse>({
+    queryKey: ['user-profile'],
+    queryFn: async () => {
+      const res = await fetch('/api/user', {
+        credentials: 'include',
+        cache: 'no-store',
+      });
+      if (!res.ok) throw new Error('Không thể tải thông tin người dùng.');
+      return res.json();
+    }
+  });
+
   useEffect(() => {
-    console.log('✅ AccountPage mounted!');
-    const fetchUser = async () => {
-      try {
-        const res = await fetch('/api/user', {
-          credentials: 'include',
-          cache: 'no-store',
-        });
-        if (!res.ok) throw new Error('Không thể tải thông tin người dùng.');
+    if (userData) {
+      setFullName(userData.fullName || '');
+      setUsername(userData.username || '');
+      setOriginalFullName(userData.fullName || '');
+      setOriginalUsername(userData.username || '');
+    }
+  }, [userData]);
 
-        const data: UserResponse = await res.json();
-        setFullName(data.fullName || '');
-        setUsername(data.username || '');
-        setOriginalFullName(data.fullName || '');
-        setOriginalUsername(data.username || '');
-      } catch (err) {
-        toast.error(
-          'Không thể tải thông tin người dùng. Vui lòng đăng nhập lại.',
-        );
+  const updateMutation = useMutation({
+    mutationFn: async (body: any) => {
+      const res = await fetch('/api/update', {
+        method: 'PATCH',
+        cache: 'no-store',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        credentials: 'include',
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Cập nhật thất bại!');
       }
-    };
-
-    fetchUser();
-  }, []);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success('Cập nhật thành công!');
+      setOriginalFullName(fullName);
+      setOriginalUsername(username);
+      setCurrentPassword('');
+      setNewPassword('');
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['user'] }); // Invalidate global user query if exists
+    },
+    onError: (err: any) => {
+      const message = err instanceof Error ? err.message : 'Có lỗi xảy ra.';
+      if (message.includes('401')) {
+        toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        if(window) window.location.href = '/login';
+      } else {
+        toast.error(message);
+      }
+    }
+  });
 
   const hasChanges =
     fullName.trim() !== originalFullName.trim() ||
@@ -64,7 +97,6 @@ export default function AccountPage() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
 
     const newErrors = { fullName: '', username: '' };
     if (!fullName.trim()) newErrors.fullName = 'Họ và tên không được bỏ trống.';
@@ -72,7 +104,6 @@ export default function AccountPage() {
       newErrors.username = 'Tên đăng nhập không được bỏ trống.';
     setErrors(newErrors);
     if (newErrors.fullName || newErrors.username) {
-      setIsLoading(false);
       return;
     }
 
@@ -80,7 +111,6 @@ export default function AccountPage() {
       toast.error(
         'Vui lòng nhập mật khẩu mới hoặc để trống mật khẩu hiện tại để thực hiện những thay đổi khác.',
       );
-      setIsLoading(false);
       return;
     }
 
@@ -102,55 +132,13 @@ export default function AccountPage() {
 
     if (Object.keys(body).length === 0) {
       toast.error('Không có thay đổi nào để cập nhật!');
-      setIsLoading(false);
       return;
     }
 
-    try {
-      const res = await fetch('/api/update', {
-        method: 'PATCH',
-        cache: 'no-store',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        credentials: 'include',
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Cập nhật thất bại!');
-      }
-
-      toast.success('Cập nhật thành công!');
-
-      setOriginalFullName(fullName);
-      setOriginalUsername(username);
-      setCurrentPassword('');
-      setNewPassword('');
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Có lỗi xảy ra.';
-      if (message.includes('401')) {
-        toast.error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-        if(window) window.location.href = '/login';
-      } else {
-        toast.error(message);
-      }
-    } finally {
-      setIsLoading(false);
-    }
+    updateMutation.mutate(body);
   };
 
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/logout', { method: 'POST' });
-      setIsLoggedIn(false);
-      setUser(null);
-      setIsAdmin(false);
-      toast.success('Đăng xuất thành công!');
-       if(window)  window.location.href = '/login';
-    } catch (error) {
-      toast.error('Đăng xuất thất bại!');
-    }
-  };
+  const isLoading = updateMutation.isPending;
 
   return (
     <Layout>
@@ -171,8 +159,6 @@ export default function AccountPage() {
                 onChange={(e) => {
                   const val = e.target.value;
                   setFullName(val);
-                  // if (!val.trim()) setErrors((p) => ({ ...p, fullName: "Họ và tên không được bỏ trống." }))
-                  // else setErrors((p) => ({ ...p, fullName: "" }))
                 }}
                 className="w-full px-3 py-2 rounded-lg border border-pink-300 bg-white focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300"
               />
@@ -192,8 +178,6 @@ export default function AccountPage() {
                 onChange={(e) => {
                   const val = e.target.value;
                   setUsername(val);
-                  // if (!val.trim()) setErrors((p) => ({ ...p, username: "Tên đăng nhập không được bỏ trống." }))
-                  // else setErrors((p) => ({ ...p, username: "" }))
                 }}
                 className="w-full px-3 py-2 rounded-lg border border-pink-300 bg-white focus:outline-none focus:ring-2 focus:ring-pink-300 focus:border-pink-300"
               />
@@ -290,13 +274,6 @@ export default function AccountPage() {
               {isLoading ? 'Đang xử lý...' : 'Lưu thay đổi'}
             </Button>
           </form>
-          <Button
-            variant="secondary"
-            onClick={handleLogout}
-            className="px-8 py-3 mx-auto block w-40 rounded-lg text-white transition bg-red-500 hover:bg-red-600 mt-4"
-          >
-            Đăng xuất
-          </Button>
         </div>
       </div>
       <Toaster position="top-center" />

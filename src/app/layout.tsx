@@ -1,5 +1,6 @@
 'use client';
 
+import QueryProvider from '@/components/providers/query-provider';
 import { useAuthStore } from '@/lib/store';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { useEffect } from 'react';
@@ -49,7 +50,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <QueryProvider>
+          {children}
+        </QueryProvider>
         <Toaster position="top-center" />
       </body>
     </html>

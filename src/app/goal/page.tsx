@@ -1,13 +1,13 @@
 "use client"
 
 import Layout from "@/components/layout"
-import { motion } from "framer-motion"
-import { CheckCircle, ArrowRight } from "lucide-react"
-import UserProgress from "@/components/user-progress"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { useAuthStore } from "@/lib/store"
 import { Skeleton } from "@/components/ui/skeleton"
+import UserProgress from "@/components/user-progress"
+import { useAuthStore } from "@/lib/store"
+import { useQuery } from "@tanstack/react-query"
+import { motion } from "framer-motion"
+import { ArrowRight, CheckCircle } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 type MucTieu = {
   ma_muc_tieu: number;
@@ -19,41 +19,35 @@ type MucTieu = {
 
 export default function GoalPage() {
   const router = useRouter()
-  const [mucTieuList, setMucTieuList] = useState<MucTieu[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const { user, isHydrated } = useAuthStore()
 
-  useEffect(() => {
-    if (!isHydrated) return
+  const { data: mucTieuList = [], isLoading: loading, error } = useQuery<MucTieu[]>({
+    queryKey: ['goals', user?.id],
+    queryFn: async () => {
+      const res = await fetch("/api/goal")
+      if (!res.ok) throw new Error("Không thể tải danh sách mục tiêu")
+      const data: MucTieu[] = await res.json()
+      return data.map(goal => ({
+        ...goal,
+        ten_muc_tieu: `Kiếm được ${goal.diem_can_dat} XP`,
+      }))
+    },
+    enabled: !!(isHydrated && user?.id)
+  })
 
-    const fetchData = async () => {
-      if (!user?.id) {
-        setMucTieuList([]) 
-        setLoading(false)
-        return
+  const handleContinue = async () => {
+    try {
+      const res = await fetch('/api/user-language')
+      const data = await res.json()
+      if (data.current) {
+        router.push(`/course?lang=${data.current.id}`)
+      } else {
+        router.push('/course/choose')
       }
-
-      try {
-        setLoading(true)
-        const res = await fetch("/api/goal")
-        if (!res.ok) throw new Error("Không thể tải danh sách mục tiêu")
-        const data: MucTieu[] = await res.json()
-        const goalsWithName: MucTieu[] = data.map(goal => ({
-          ...goal,
-          ten_muc_tieu: `Kiếm được ${goal.diem_can_dat} XP`,
-        }))
-
-        setMucTieuList(goalsWithName)
-      } catch (err: any) {
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
+    } catch {
+      router.push('/course/choose')
     }
-
-    fetchData()
-  }, [isHydrated, user?.id])
+  }
 
   return (
     <Layout>
@@ -74,7 +68,7 @@ export default function GoalPage() {
                 ))}
               </div>
             ) : error ? (
-              <p className="text-red-500">{error}</p>
+              <p className="text-red-500">{(error as Error).message}</p>
             ) : (
               mucTieuList.map(goal => {
                 const completed = goal.hoan_thanh;
@@ -107,19 +101,7 @@ export default function GoalPage() {
                       ) : (
                         <div
                           className="absolute top-full right-0 mt-2 flex items-center gap-2 cursor-pointer hover:opacity-80 transition"
-                          onClick={async () => {
-                            try {
-                              const res = await fetch('/api/user-language')
-                              const data = await res.json()
-                              if (data.current) {
-                                router.push(`/course?lang=${data.current.id}`)
-                              } else {
-                                router.push('/course/choose')
-                              }
-                            } catch {
-                              router.push('/course/choose')
-                            }
-                          }}
+                          onClick={handleContinue}
                         >
                           <span className="text-pink-500 text-sm font-medium">
                             Tiếp tục học

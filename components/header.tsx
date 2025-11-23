@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { useQuery } from '@tanstack/react-query'
 import Image from 'next/image'
+import { usePathname, useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 const menuItems = [
   { name: 'Học tập', href: '/course' },
@@ -20,22 +21,17 @@ export const Header = ({ onLogoutAction }: HeaderProps) => {
   const router = useRouter()
   const pathname = usePathname()
   const [showLogoutModal, setShowLogoutModal] = useState(false)
-  const [userLanguageId, setUserLanguageId] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchUserLanguage = async () => {
-      try {
-        const res = await fetch('/api/user-language', { cache: 'no-store' })
-        if (!res.ok) throw new Error('Không thể lấy ngôn ngữ')
-        const data = await res.json()
-        setUserLanguageId(data.current ? String(data.current.id) : null)
-      } catch (err) {
-        console.error(err)
-        setUserLanguageId(null)
-      }
+  const { data: userLanguageData } = useQuery({
+    queryKey: ['user-language'],
+    queryFn: async () => {
+      const res = await fetch('/api/user-language', { cache: 'no-store' })
+      if (!res.ok) throw new Error('Không thể lấy ngôn ngữ')
+      return res.json()
     }
-    fetchUserLanguage()
-  }, [])
+  })
+
+  const userLanguageId = userLanguageData?.current ? String(userLanguageData.current.id) : null
 
   return (
     <header className="w-full border-b-2 border-slate-200 px-6">
