@@ -6,7 +6,7 @@ import { assertAdmin } from "../../../../lib/auth"
 import { eq, and, ne } from "drizzle-orm"
 import bcrypt from "bcryptjs"
 
-const JWT_SECRET = process.env.JWT_SECRET!
+const JWT_SECRET = process.env.JWT_SECRET || "default_secret"
 
 // -------------------- GET --------------------
 export async function GET(req: NextRequest) {

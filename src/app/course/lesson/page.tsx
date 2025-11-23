@@ -49,15 +49,22 @@ function LessonPageContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const playAudio = (src: string) => {
-    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_AUDIO_BASE_URL;
-    if (!baseUrl) return;
-
-    const fullUrl = `${baseUrl}${src}`; 
-    const audio = new Audio(fullUrl);
-    audio.play();
-  }
-
+      const playAudio = (src: string) => {
+          const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_AUDIO_BASE_URL || "";
+          console.log("Base URL:", baseUrl);
+          console.log("Audio Source:", src);
+          
+          if (!baseUrl) {
+              console.error("NEXT_PUBLIC_SUPABASE_AUDIO_BASE_URL is not set.");
+              return;
+          }
+  
+          const fullUrl = `${baseUrl}${src}`;
+          console.log("Playing audio from:", fullUrl);
+  
+          const audio = new Audio(fullUrl);
+          audio.play().catch(e => console.error("Error playing audio:", e));
+      }
   useEffect(() => {
     if (!langId || !unitId || !lessonId) {
       setError("Thiếu tham số bài học hoặc ngôn ngữ")

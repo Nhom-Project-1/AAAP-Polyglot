@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken"
 import db, { schema } from "../../../../db/drizzle"
 import { eq, and, ne } from "drizzle-orm"
 
-const JWT_SECRET = process.env.JWT_SECRET!
+const JWT_SECRET = process.env.JWT_SECRET || "default_secret"
 
 type Body = {
   fullName?: string

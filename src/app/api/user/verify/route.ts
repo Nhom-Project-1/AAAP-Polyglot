@@ -5,7 +5,7 @@ import { nguoi_dung } from "../../../../../db/schema";
 import jwt from "jsonwebtoken";
 import { assertAdmin } from "../../../../../lib/auth";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
 
 interface DecodedToken extends jwt.JwtPayload {
   email: string;

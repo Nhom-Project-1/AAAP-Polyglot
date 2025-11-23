@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import jwt from 'jsonwebtoken'
 import type { ReactNode } from 'react'
 
-const JWT_SECRET = process.env.JWT_SECRET!
+const JWT_SECRET = process.env.JWT_SECRET || "default_secret"
 
 interface TokenPayload {
   ma_nguoi_dung: number

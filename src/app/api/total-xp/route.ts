@@ -4,7 +4,7 @@ import { tien_do } from '../../../../db/schema';
 import { eq, sum } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
 
 export async function GET(req: NextRequest) {
   try {

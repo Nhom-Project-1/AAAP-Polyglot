@@ -8,7 +8,7 @@ type LessonRow = typeof s.bai_hoc.$inferSelect;
 
 type Params = { langId: string };
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
 
 export async function GET(req: NextRequest, ctx: { params: Promise<Params> }) {
   try {

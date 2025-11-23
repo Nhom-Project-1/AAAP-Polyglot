@@ -4,7 +4,7 @@ import { muc_tieu, tien_do, tien_do_muc_tieu } from "../../../../db/schema";
 import { asc, eq, and, sum } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
+const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
 
 export async function GET(req: NextRequest) {
   try {

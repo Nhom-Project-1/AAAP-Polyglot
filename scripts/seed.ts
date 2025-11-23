@@ -4,7 +4,7 @@ import * as schema from "../db/schema";
 import bcrypt from "bcryptjs";
 import "dotenv/config";
 
-const sql = neon(process.env.DATABASE_URL!)
+const sql = neon(process.env.DATABASE_URL || "")
 const db = drizzle(sql, { schema });
 
 const main = async () => {
