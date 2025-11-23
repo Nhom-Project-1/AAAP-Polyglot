@@ -132,6 +132,17 @@ export async function POST(req: NextRequest) {
       (maxLan > 0 && daLamTrongLanMax >= total) || progress.trang_thai === 'that_bai'
     ) {
       lan_lam_hien_tai = maxLan + 1
+      // Reset hearts for new attempt
+      progress.so_tim_con_lai = 5;
+
+      // Update DB to reflect new attempt start and reset hearts
+      await db
+        .update(tien_do)
+        .set({
+          trang_thai: 'dang_hoc',
+          so_tim_con_lai: 5
+        })
+        .where(eq(tien_do.ma_tien_do, progress.ma_tien_do));
     }
 
     // --- 3. Ghi nhận câu trả lời của người dùng ---
@@ -223,18 +234,18 @@ export async function POST(req: NextRequest) {
       const prevMaxCorrectCount =
         prevMaxXPQuery.length > 0
           ? (
-              await db
-                .select({ count: count() })
-                .from(cau_tra_loi_nguoi_dung)
-                .where(
-                  and(
-                    eq(cau_tra_loi_nguoi_dung.lan_lam, prevMaxXPQuery[0].lan_lam),
-                    eq(cau_tra_loi_nguoi_dung.dung, true),
-                    eq(cau_tra_loi_nguoi_dung.ma_nguoi_dung, ma_nguoi_dung),
-                    eq(cau_tra_loi_nguoi_dung.ma_bai_hoc, ma_bai_hoc),
-                  ),
-                )
-            )[0].count
+            await db
+              .select({ count: count() })
+              .from(cau_tra_loi_nguoi_dung)
+              .where(
+                and(
+                  eq(cau_tra_loi_nguoi_dung.lan_lam, prevMaxXPQuery[0].lan_lam),
+                  eq(cau_tra_loi_nguoi_dung.dung, true),
+                  eq(cau_tra_loi_nguoi_dung.ma_nguoi_dung, ma_nguoi_dung),
+                  eq(cau_tra_loi_nguoi_dung.ma_bai_hoc, ma_bai_hoc),
+                ),
+              )
+          )[0].count
           : 0
       const prevMaxXP = prevMaxCorrectCount * 10
       const finalXP = soCauDung * 10
@@ -263,7 +274,7 @@ export async function POST(req: NextRequest) {
           .select({ total: sum(tien_do.diem_kinh_nghiem) })
           .from(tien_do)
           .where(eq(tien_do.ma_nguoi_dung, ma_nguoi_dung));
-        
+
         const newTotalXp = Number(totalXpResult[0]?.total ?? 0);
 
         // Lấy các mục tiêu mà người dùng có thể đã đạt được
