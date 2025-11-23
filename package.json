@@ -11,7 +11,6 @@
     "db:push": "npx drizzle-kit push",
     "db:seed": "npx tsx scripts/seed.ts",
     "test": "jest"
-    "db:seed": "npx tsx scripts/seed.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
@@ -50,7 +49,6 @@
     "@testing-library/react": "^16.3.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^30.0.0",
-    "@types/bcryptjs": "^2.4.6",
     "@types/js-cookie": "^3.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/ms": "^2.1.0",
@@ -69,8 +67,6 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.13",
     "ts-jest": "^29.4.5",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^4.1.13",
     "tw-animate-css": "^1.3.8",
     "typescript": "5.9.2"
   }
