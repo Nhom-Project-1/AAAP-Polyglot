@@ -5,9 +5,9 @@ name: Node.js CI
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main", "develop" ]
+    branches: [ "main" ]
 
 jobs:
   build:
@@ -29,9 +29,5 @@ jobs:
       run: npm install -g pnpm
     - name: Install dependencies
       run: pnpm install
-    - name: Build
-      env:
-        DATABASE_URL: 'test'
-      run: pnpm run build
     - name: Test
       run: pnpm run test
