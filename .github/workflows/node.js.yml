@@ -29,9 +29,5 @@ jobs:
       run: npm install -g pnpm
     - name: Install dependencies
       run: pnpm install
-    - name: Build
-      env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      run: pnpm run build
     - name: Test
       run: pnpm run test
