@@ -40,10 +40,15 @@ export async function GET(request: NextRequest) {
             where: and(
               eq(tien_do.ma_nguoi_dung, ma_nguoi_dung),
               eq(tien_do.ma_bai_hoc, Number(ma_bai_hoc))
-            )
+            ),
           });
+
           if (userProgress) {
-            hearts = userProgress.so_tim_con_lai;
+            if (userProgress.trang_thai === 'hoan_thanh' || userProgress.trang_thai === 'that_bai') {
+              hearts = 5;
+            } else {
+              hearts = userProgress.so_tim_con_lai;
+            }
           }
         }
       } catch (e) {
