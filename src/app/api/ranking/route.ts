@@ -1,7 +1,7 @@
+import { sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { db } from "../../../../db/drizzle";
 import { bang_xep_hang, tien_do } from "../../../../db/schema";
-import { sql, eq } from "drizzle-orm";
 
 export async function POST() {
   try {
@@ -13,32 +13,32 @@ export async function POST() {
       .from(tien_do)
       .groupBy(tien_do.ma_nguoi_dung);
 
+    // Filter out null user IDs and prepare data for bulk upsert
+    const validUsers = tongXPTheoNguoiDung
+      .filter(row => row.ma_nguoi_dung !== null)
+      .map(row => ({
+        ma_nguoi_dung: row.ma_nguoi_dung!,
+        tong_diem_xp: row.tong_diem_xp,
+      }));
 
-      for (const row of tongXPTheoNguoiDung) {
-      const { ma_nguoi_dung, tong_diem_xp } = row;
-
-      if(!ma_nguoi_dung) continue;
-
-      const existing = await db.query.bang_xep_hang.findFirst({
-        where: eq(bang_xep_hang.ma_nguoi_dung, ma_nguoi_dung),
+    if (validUsers.length === 0) {
+      return NextResponse.json({
+        message: "Không có dữ liệu để cập nhật",
+        so_nguoi: 0,
       });
-
-      if (existing) {
-        await db
-          .update(bang_xep_hang)
-          .set({ tong_diem_xp })
-          .where(eq(bang_xep_hang.ma_nguoi_dung, ma_nguoi_dung));
-      } else {
-        await db.insert(bang_xep_hang).values({
-          ma_nguoi_dung,
-          tong_diem_xp,
-        });
-      }
     }
+
+    // Bulk upsert - 1 query instead of 2N queries!
+    await db.insert(bang_xep_hang)
+      .values(validUsers)
+      .onConflictDoUpdate({
+        target: bang_xep_hang.ma_nguoi_dung,
+        set: { tong_diem_xp: sql`excluded.tong_diem_xp` }
+      });
 
     return NextResponse.json({
       message: "Cập nhật bảng xếp hạng thành công!",
-      so_nguoi: tongXPTheoNguoiDung.length,
+      so_nguoi: validUsers.length,
     });
   } catch (error) {
     console.error("Lỗi khi cập nhật bảng xếp hạng:", error);

@@ -111,7 +111,10 @@ export const tien_do = pgTable("tien_do", {
   diem_kinh_nghiem: integer("diem_kinh_nghiem").default(0).notNull(),
   so_tim_con_lai: integer("so_tim_con_lai").default(5).notNull(),
   trang_thai: varchar("trang_thai", { length: 50 }),
-});
+}, (t) => ({
+  uqUserLesson: uniqueIndex("uq_tien_do_user_lesson").on(t.ma_nguoi_dung, t.ma_bai_hoc),
+  userLessonIndex: index("idx_tien_do_user_lesson").on(t.ma_nguoi_dung, t.ma_bai_hoc),
+}));
 
 export const muc_tieu = pgTable("muc_tieu", {
   ma_muc_tieu: serial("ma_muc_tieu").primaryKey(),
@@ -160,7 +163,9 @@ export const cau_tra_loi_nguoi_dung = pgTable("cau_tra_loi_nguoi_dung", {
   dung: boolean("dung").notNull().default(false),
   lan_lam: integer("lan_lam").default(1).notNull(),
   thoi_gian: timestamp("thoi_gian").defaultNow(),
-});
+}, (t) => ({
+  userLessonAttemptIndex: index("idx_cau_tra_loi_user_lesson_attempt").on(t.ma_nguoi_dung, t.ma_bai_hoc, t.lan_lam),
+}));
 
 export const tien_do_muc_tieu = pgTable(
   "tien_do_muc_tieu",
@@ -173,6 +178,9 @@ export const tien_do_muc_tieu = pgTable(
     diem_hien_tai: integer("diem_hien_tai").default(0).notNull(),
     hoan_thanh: boolean("hoan_thanh").default(false),
   },
+  (t) => ({
+    userIndex: index("idx_tien_do_muc_tieu_user").on(t.ma_nguoi_dung),
+  })
 );
 
 export const bai_hoc_hoan_thanh = pgTable(
