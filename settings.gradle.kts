@@ -1,0 +1,1 @@
+rootProject.name = "AAAP_Polyglot_Test"
